@@ -112,7 +112,7 @@
 			<resource resourceType="PROJECT" workspacePath="/lvmax"/>
 		</configuration>
 		<configuration configurationName="Execute">
-			<resource resourceType="PROJECT" workspacePath="/lvmax"/>
+			<resource resourceType="PROJECT" workspacePath="/lexicographic_value_iteration"/>
 		</configuration>
 		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/lvmax"/>
