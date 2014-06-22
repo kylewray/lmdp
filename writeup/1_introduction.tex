@@ -1,0 +1,6 @@
+\section{Introduction}
+\label{sec:introduction}
+
+This document describes work-in-progress for lexicographic value iteration in MOMDPs. Essentially, the idea is that for each state, $\lvmax$ starts with all actions available for the first value function. It then computes the optimal actions to take, but also keeps actions which yield values that are close to optimal (within some tolerance $\delta_1$). Then, it uses this restricted action set to compute the optimal value for the next value function (which has a tolerance $\delta_2$). This continues until the end, when a collection of actions remains after this pruning. The final action is selected from this set by going through the value functions one more time, but this time selecting only the optimal action (or set of actions if a tie occurs) until one remains. If after all this there is \emph{still} a tie, we will just assume a simple preference ordering over actions breaks the final tie.
+
+Note that if all $\delta_i = 0$, it reduces to a pure $\argmax$ selection at each pruning step. This is our original lexicographic preference idea.

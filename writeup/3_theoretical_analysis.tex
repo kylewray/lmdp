@@ -1,0 +1,178 @@
+\section{Theoretical Analysis}
+\label{sec:theoretical_analysis}
+
+We provide a proof of convergence for $\lvmax$ value iteration in Proposition~\ref{prop:lvmax_convergence}.
+
+\begin{proposition}
+    \label{prop:lvmax_convergence}
+    Lexicographic vector max ($\lvmax$) value iteration converges to a unique fixed point of value functions, given discount factors $\gamma_i \in [0, 1)$ for all $i \in K$ and \emph{Lipschitz constant} $\nu \in [0, 1)$ defined as
+    \begin{equation}
+        \label{eq:lvmax_convergece_nu}
+        \nu = \max_{i \in K} \Big( \gamma_i + (1 - \gamma_i) \frac{\delta_i}{|R_i^+ - R_i^-|} \Big)
+    \end{equation}
+    with $R_i^+ = \max_{s \in S} \max_{a \in A} \max_{s' \in S} R_i(s, a, s')$ and $R_i^- = \min_{s \in S} \min_{a \in A} \min_{s' \in S} R_i(s, a, s')$.
+\end{proposition}
+
+\begin{proof}
+To prove convergence, we must show that the Bellman optimality equation converges to a unique fixed point. We will do this by induction on $i \in K$. First, we must state some definitions.
+
+For a metric space $\langle X, d \rangle$, where $X$ is a set and $d$ is a distance metric, a map $f : X \rightarrow X$ is called a \emph{contraction map} if there exists an $\alpha$ such that $d(f(x), f(y)) = \alpha d(x, y)$, for all $x, y \in X$.
+
+Let the space $X_i$ be the \emph{space of value functions for $i \in K$}, i.e., we have $V_i = [V_i(s_1), \ldots, V_i(s_n)]^T \in X_i$. Let the distance metric $d_i$ be the \emph{max norm}, i.e., $\|V_i\|_\infty = \max_{s \in S} |V_i(s)|$. Since $\gamma_i \in [0, 1)$, the metric space $M_i = \langle X_i, d_i \rangle$ is a \emph{complete metric space}; every Cauchy sequence of $M_i$ converges to a point in $M_i$.
+
+Let the $\lvmax$ Bellman optimality equation's (Equation~\ref{eq:lvmax_value_iteration}) be defined as an operator $B$, i.e., $V^{t+1} = B V^t$, for $V^t, V^{t+1} \in X$ with $t \geq 0$. Let element $i \in K$ of the operator be $B_i$, such that $V_i^{t+1} = (B V^t)_i = B_i V_i^t$. We prove the operator $B_i$ is a contraction map in $M_i$ for all $i \in K$, given either that $i=1$ or that the previous $i-1$ has converged to within $\epsilon$ of its fixed point.
+
+Let $V_{1i}, V_{2i} \in X_i$ be any two value function vectors, and $\gamma_i \in [0, 1)$. We first apply the definition of $\lvmax$ from Equation~\ref{eq:lvmax}.
+\begin{equation*}
+    \| B_i V_{1i} - B_i V_{2i} \|_\infty = \max_{s \in S} | \max_{a \in A_{1i}^*} Q_{1i}(s, a) - \max_{a \in A_{2i}^*} Q_{2i}(s, a) |
+\end{equation*}
+
+By Definition~\ref{def:lvmax}, $A_{1i}^* \subseteq A_{1i}$. Therefore, for all $s \in S$, $\max_{a \in A_{1i}^*} Q_{1i}(s, a) \leq \max_{a' \in A_{1i}} Q_{1i}(s, a)$. Also by Definition~\ref{def:lvmax}, for all $a^* \in A_{2i}^* \subseteq A_{2,i+1} = \{a \in A_{2i} | \max_{a' \in A_{2i}} Q_{2i}(s, a') - Q_{2i}(s, a) \leq \delta_i \}$. Thus,
+\begin{align*}
+    \max_{a' \in A_{2i}} Q_{2i}(s, a') - \delta_i &\leq Q_{2i}(s, a^*) \leq \max_{a' \in A_{2i}^*} Q_{2i} (s, a') \\
+    -\max_{a' \in A_{2i}^*} Q_{2i} (s, a') &\leq \delta_i - \max_{a' \in A_{2i}} Q_{2i}(s, a')
+\end{align*}
+
+Without loss of generality, assume that $B_i V_{1i} \geq B_i V_{2i}$, making the absolute value optional in the first equation below. If the opposite is true, then we may simply switch the logic for deriving the two above upper bounds and apply those instead throughout.
+
+Combine these three facts, and we obtain the following.
+\begin{align*}
+    &\| B_i V_{1i} - B_i V_{2i} \|_\infty \\
+    &\leq \max_{s \in S} | \max_{a \in A_{1i}} Q_{1i}(s, a) - \max_{a \in A_{2i}} Q_{2i}(s, a) + \delta_i | \\
+    &\leq \max_{s \in S} | \max_{a \in A_{1i}} Q_{1i}(s, a) - \max_{a \in A_{2i}} Q_{2i}(s, a)| + |\delta_i|
+\end{align*}
+
+By Definition~\ref{def:lvmax}, when $i=1$ we have $A_{1i} = A_{2i} = A$. Similarly, when $i \in \{2, \ldots, k\}$ given that $i-1$ has converged to within $\epsilon$ of its fixed point, it yields a unique fixed set of actions $A'$, with $A_{1i} = A_{2i} = A' \subseteq A$. Let us denote this fixed actions set as $\bar{A}_i$ for all $i \in K$. Also, as part of the $Q(\cdot)$ values, we distribute $T(\cdot)$ to each $R(\cdot)$ and $V(\cdot)$ in the summations, then apply the property: $\max_x f(x) + g(x) \leq \max_x f(x) + \max_x g(x)$, twice.
+\begin{align*}
+    &\| B_i V_{1i} - B_i V_{2i} \|_\infty \\
+    &\leq \max_{s \in S} \Big| \max_{a \in \bar{A}_i} \Big( \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad + \gamma_i \sum_{s' \in S} T(s, a, s') V_{1i}(s') \Big) \\
+    &\quad \quad - \max_{a \in \bar{A}_i} \Big( \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad - \gamma_i \sum_{s' \in S} T(s, a, s') V_{2i}(s') \Big) \Big| + \delta_i \\
+    &\leq \max_{s \in S} \Big| \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad + \gamma_i \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') V_{1i}(s') \\
+    &\quad \quad - \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad - \gamma_i \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') V_{2i}(s') \Big| + \delta_i \\
+    &\leq \max_{s \in S} \Big| \gamma_i \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') V_{1i}(s') \\
+    &\quad \quad - \gamma_i \max_{a \in \bar{A}_i} \sum_{s' \in S} T(s, a, s') V_{2i}(s') \Big| + \delta_i
+\end{align*}
+Note that we can pull out $\gamma_i \in [0, 1)$. Recall, that for any two functions $f$ and $g$, $| \max_x f(x) - \max_x g(x) | \leq \max_x | f(x) - g(x) |$.
+\begin{align*}
+    &\| B_i V_{1i} - B_i V_{2i} \|_\infty \\
+    &\leq \gamma_i \max_{s \in S} \max_{a \in \bar{A}_i} \Big| \sum_{s' \in S} T(s, a, s') (V_{1i}(s') - V_{2i}(s')) \Big| + \delta_i
+\end{align*}
+
+Since $\sum_{s' \in S} T(s, a, s') = 1$ and for all $s' \in S$, $T(s, a, s') \in [0, 1]$, it is defined on the $n$-simplex. It then scales the vertices by the values $R(\cdot)$ or $V(\cdot)$. This forms simple convex polytope. Convex polytopes obtain their maximum value at the vertices (or on an entire edge or face, which includes the vertices). Therefore, we may exclusively maximize over these vertices ($R(\cdot)$ and $V(\cdot)$), and may simply drop both maximizations which select the weights (i.e., maximization over $s \in S$ and $a \in A$).
+\begin{align*}
+    &\| B_i V_{1i} - B_i V_{2i} \|_\infty \leq \gamma_i \max_{s' \in S} \Big| V_{1i}(s') - V_{2i}(s') \Big| + \delta_i \\
+    &\leq \gamma_i \| V_{1i} - V_{2i} \|_\infty + \delta_i \frac{\| V_{1i} - V_{2i} \|_\infty}{\| V_{1i} - V_{2i} \|_\infty} \\
+    &\leq \Big( \gamma_i + \frac{\delta_i}{\| V_{1i} - V_{2i} \|_\infty} \Big) \| V_{1i} - V_{2i} \|_\infty
+\end{align*}
+
+We can place a constant upper bound on this value to remove the denominator $\| V_{1i} - V_{2i} \|_\infty$. Consider any finite or finite sequence of states and actions performed by the agent: $z = \langle s^0, a^0, s^1, a^1, \ldots \rangle$. The utility $u_i^h(z)$ at horizon $h \in \mathbb{N} \cup \{ \infty \}$ is bounded:
+\begin{align*}
+    u_i^h(\langle s^0, a^0, s^1, a^1, \ldots \rangle) &= \sum_{t=0}^h \gamma_i^t R_i(s^t, a^t, s^{t+1}) \\
+        &\leq \sum_{t=0}^\infty \gamma_i^t R_i^+ \leq \frac{R_i^+}{1 - \gamma_i}
+\end{align*}
+Similarly,
+\begin{equation*}
+    -u_i^h(\langle s^0, a^0, s^1, a^1, \ldots \rangle) \geq \frac{R_i^-}{1 - \gamma_i}
+\end{equation*}
+The value function is therefore bounded by these values, because including state transitions would only decrease the values.
+\begin{align*}
+    \| V_{1i} - V_{2i} \|_\infty &\leq \Big| \frac{R_i^+}{1 - \gamma_i} - \frac{R_i^-}{1 - \gamma_i} \Big| \leq \frac{|R_i^+ - R_i^-|}{1 - \gamma_i} \\
+    \Rightarrow \quad \quad \frac{-1}{\| V_{1i} - V_{2i} \|_\infty} &\leq -\frac{1 - \gamma_i}{|R_i^+ - R_i^-|}
+\end{align*}
+
+Now we may obtain final result, proving that the Bellman operator $B_i$ is a contraction map on metric space $M_i$, for all $i \in K$.
+\begin{align*}
+    &\| B_i V_{1i} - B_i V_{2i} \|_\infty \leq \Big( \gamma_i - \delta_i \frac{-1}{\|V_{1i} - V_{2i}\|_\infty}  \Big) \| V_{1i} - V_{2i} \|_\infty \\
+    &\leq \Big( \gamma_i - \delta_i \Big( -\frac{1 - \gamma_i}{|R_i^+ - R_i^-|} \Big) \Big) \| V_{1i} - V_{2i} \|_\infty \\
+    &\leq \Big( \gamma_i + (1 - \gamma_i) \frac{\delta_i}{|R_i^+ - R_i^-|} \Big) \| V_{1i} - V_{2i} \|_\infty \\
+    &\leq \nu \| V_{1i} - V_{2i} \|_\infty
+\end{align*}
+
+Thus, for all $i \in K$, by definition of a contraction map, $B_i$ admits at most one fixed point. Additionally, since $M_i$ is a complete metric space, we can guarantee convergence to a unique fixed point. \emph{Banach's fixed point theorem} states that if $M_i = \langle X_i, d_i \rangle$ is a complete metric space and $B_i: X_i \rightarrow X_i$ is a contraction map, then $B_i$ admits a unique fixed point $V_i^* \in X_i$, i.e., $B_i V_i^* = V_i^*$. Thus, we will have convergence of value iteration to a unique fixed point $V_i^* \in X_i$, for all $i \in K$.
+\end{proof}
+
+We may also derive an equation which guarantees convergence to within $\epsilon > 0$ of the fixed point, as shown in Proposition~\ref{prop:lvmax_convergence_check}.
+
+\begin{proposition}
+    \label{prop:lvmax_convergence_check}
+    Lexicographic vector max ($\lvmax$) value iteration converges to within $\epsilon > 0$ of its unique fixed point once $\| V^{t+1} - V^t \|_\infty < \epsilon \frac{1 - \nu}{\nu}$.
+\end{proposition}
+
+\begin{proof}
+From Proposition~\ref{prop:lvmax_convergence}, for all $i \in K$, a corollary of Banach's fixed point theorem is that the speed of convergence to within $\epsilon > 0$ of the fixed point $x^*$ is known (using the generic notation from above for a metric space).
+\begin{align*}
+    d(x^*, x_{t+1}) &\leq \frac{\alpha}{1 - \alpha} d(x_{t+1}, x_t) \\
+    \| V_i^* - V_i^{t+1}\|_\infty &\leq \frac{\nu}{1 - \nu} \| V_i^{t+1} - V_i^t \|_\infty
+\end{align*}
+
+Since we want the distance from the fixed point $V_i^* \in X_i$ to be $\epsilon$, we may rewrite the equation accordingly.
+\begin{align*}
+    \epsilon &\leq \frac{\gamma_i}{1 - \gamma_i} \| V_i^{t+1} - V_i^t \|_\infty \\
+    \epsilon \frac{1 - \gamma_i}{\gamma_i} &\leq \| V_i^{t+1} - V_i^t \|_\infty
+\end{align*}
+The above equation states that we are at least $\epsilon$ (or more) away from the fixed point when the maximum difference (over the states) between iterations satisfies the inequality. Therefore, we flip the inequality to create a convergence criterion, which ensures that we are $\epsilon$ or less from the fixed point. Finally, this must be true for all $i \in K$, so we may rewrite it with the infinity norm defined over both $K$ and $S$.
+\begin{equation*}
+    \quad \| V^{t+1} - V^t \|_\infty < \epsilon \frac{1 - \nu}{\nu}
+\end{equation*}
+\end{proof}
+
+It is straightforward to show that $\lvmax$ value iteration generalizes value iteration, as shown in Proposition~\ref{prop:lvmax_generalizes_vi}.
+\begin{proposition}
+    \label{prop:lvmax_generalizes_vi}
+    Lexicographic vector max ($\lvmax$) value iteration generalizes value iteration.
+\end{proposition}
+
+\begin{proof}
+Let $M = \langle S, A, T, \mathbf{R} \rangle$ with $\mathbf{R} = \langle R_1 \rangle$ and $\delta_1 = 0$. By Definition~\ref{def:lvmax}, for all $s \in S$, $\mathbf{V}(s) = \lvmax_{a \in A} \mathbf{Q}(s, a) = \max_{a \in A_1^*} Q_1(s, a)$. Since $A_1^* = A_k = A_1 = A$, we have $V_1(s) = \max_{a \in A} Q_1(s, a)$. This is value iteration on $M' = \langle S, A, T, R_1 \rangle$.
+\end{proof}
+
+Typically, a multi-objective optimization problem converts the problem into a objective function by summing the value function and weighting them in a particular manner. Our $\lvmax$ value iteration returns a different solution from the linearly weighted function approaches used to solve MOMDPs. Proposition~\ref{prop:lvmax_different_solution} proves this fact.
+
+% Let the set of all policies returned by value iteration operator $B$ be denoted as $\Pi_B$. Formally, we say that the value iteration operator $B$ is \emph{unique} with respect to value iteration operator $B'$, if and only for some $\epsilon > 0$ and $\gamma_i \in [0, 1)$ in MDP $M = \langle S, A, T, R \rangle$, $\Pi_B \not\subseteq \Pi_{B'}$ and $\Pi_{B'} \not\subseteq \Pi_B$.
+
+% \begin{proposition}
+%     \label{prop:lvmax_uniqueness}
+%     For $\epsilon > 0$ and $\gamma \in [0, 1)$, let $\Pi_{vi}$ be the set of all policies returned by value iteration operator $B_{vi}$ using a weighted objective function with weights $\mathbf{w} \in \mathbb{R}^k$. Also, let $\Pi_{lv}$ be the set of all policies returned by value iteration operator $B_{lv}$ as defined by Equation~\ref{eq:lvmax_value_iteration} with $\epsilon$ and $\gamma$. $B_{lv}$ is unique with respect to $B_{vi}$.
+% \end{proposition}
+
+% \begin{proof}
+% By the definition of uniqueness, must show that there exists an MDP $M = \langle S, A, T, R \rangle$ such that $\Pi_{vi} \not\subseteq \Pi_{lv}$ and $\Pi_{lv} \not\subseteq \Pi_{vi}$. Assume by contradiction that $\forall M$, $\Pi_{vi} \subseteq \Pi_{lv}$ or $\Pi_{lv} \subset \Pi_{vi}$.
+
+% \end{proof}
+
+
+\begin{proposition}
+    \label{prop:lvmax_different_solution}
+    Let the normal Bellman's equation, with linear weights $\mathbf{w} \in \bigtriangleup^k$, and $\lvmax$'s value iteration's resulting value functions be denoted as the $n$-by-$k$ matrices $V^*$ and $V_{lv}^*$, respectively. There exist a class of MOMDPs $\mathcal{M}$ such that $V^* \neq V_{lv}^*$.
+\end{proposition}
+
+\begin{proof}
+Assume by contradiction that for all $M \in \mathcal{M}$, $V^* = V_{lv}^*$, i.e., there always exists a set of weights $\mathbf{w} \in \bigtriangleup^k$ which makes this so. We know three things for all $s \in S$: $V_{\mathbf{w}}^*(s) = B V_{\mathbf{w}}^*(s)$, $V_{\mathbf{w}}^*(s) = \mathbf{w} \mathbf{V}^*(s)$, and $\mathbf{V}_{lv}^*(s) = B_{lv} \mathbf{V}_{lv}^*(s)$. Therefore, we have:
+\begin{align*}
+    f(\mathbf{V}_{lv}^*(s), \mathbf{w}) &= f(\mathbf{V}^*(s), \mathbf{w}) = V_{\mathbf{w}}^*(s) = B V_{\mathbf{w}}^*(s) \\
+        &= B( f(\mathbf{V}^*(s), \mathbf{w})) = B (f(B_{lv} \mathbf{V}_{lv}^*(s), \mathbf{w}))
+\end{align*}
+We now apply the Bellman optimality operator to the right side, as well as the $\lvmax$ operator.
+\begin{align*}
+    f(\mathbf{V}_{lv}^*(s), \mathbf{w}) &= \max_{a \in A} \Big( \sum_{s' \in S} T(s, a, s') f(\mathbf{R}(s, a, s'), \mathbf{w}) \\
+        &+ \gamma \sum_{s' \in S} T(s, a, s') f(\max_{a' \in A_i^*} \mathbf{Q}_{lv}^*(s', a'), \mathbf{w}) \Big)
+\end{align*}
+Apply the properties the linearity of $f$.
+\begin{align*}
+    0 &= \max_{a \in A} f\Big( \sum_{s' \in S} T(s, a, s') \mathbf{R}(s, a, s') \\
+        &+ \gamma \sum_{s' \in S} T(s, a, s') \max_{a' \in A_i^*} \mathbf{Q}_{lv}^*(s', a') - \mathbf{V}_{lv}^*(s), \mathbf{w} \Big) \\
+    0 &= \max_{a \in A} f\Big( \mathbf{x}_a, \mathbf{w} \Big)
+\end{align*}
+Since $\mathbf{w} \in \bigtriangleup^k$, and $f$ is a linear sum of weights and components, we will show that $\exists M \in \mathcal{M}$ such that $\exists s \in S$ such that $\forall i \in K$, $\mathbf{x}_a > 0$.
+\end{proof}
+
+
+\begin{proposition}
+    \label{prop:lvmax_dead_end_avoidance}
+    Let $M = \langle S, A, T, \mathbf{R} \rangle$, with $\mathbf{R} = \langle R_1, R_2 \rangle$, be a MOMDP with dead ends for $R_1$ and goal states for $R_2$. Assume there exists a proper policy. With $\gamma = 1$, $\lvmax$ value iteration converges to a policy which strictly avoids dead ends, and otherwise strictly prefers goal states.
+\end{proposition}
+

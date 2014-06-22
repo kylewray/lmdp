@@ -1,0 +1,90 @@
+\documentclass[letterpaper]{article}
+
+\usepackage{aaai}
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+
+% \usepackage[numbers]{natbib}            % Bibliography
+\usepackage{amsmath}                    % For Math Proofs
+\usepackage{amsthm}                     % For Math Proofs
+\usepackage{amssymb}                    % For Math Proofs
+\usepackage{amsfonts}                   % For Math Proofs
+\usepackage{algorithm}                  % For Algorithms
+\usepackage{algorithmic}                % For Algorithms
+\usepackage{graphicx}                   % For Graphics/Figures
+\usepackage{float}                      % For Graphics/Figures
+\usepackage{epstopdf}                   % Convert eps images to pdf
+\usepackage{mathabx}                    % For \bigtimes -- Cartesian product
+
+% Create some formatting and definitions.
+\theoremstyle{definition}
+\newtheorem{problem}{Problem}
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+\newtheorem{notation}{Notation}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\lvmax}{lvmax}
+\DeclareMathOperator*{\leximax}{leximax}
+\DeclareMathOperator*{\leximin}{leximin}
+
+
+\pdfinfo{
+/Title (Multi-Objective MDPs with Lexicographic Reward Preferences)
+/Author (Kyle Hollins Wray, Shlomo Zilberstein, Abdel-Illah Mouaddib)}
+
+\setcounter{secnumdepth}{0}
+
+\title{Multi-Objective MDPs with Lexicographic Reward Preferences}
+
+\author{Kyle Hollins Wray \and Shlomo Zilberstein \\
+  University of Massachusetts \\
+  Amherst, MA 01003, USA \\
+  {\tt \{wray, shlomo\}@cs.umass.edu} \And
+  Abdel-Illah Mouaddib \\
+  GREYC - Univeaite de Caen \\
+  Bd Marechal Juin, BP 5186 \\
+  F14032 Caen Cedex, France \\
+  {\tt mouaddib@info.unicaen.fr}}
+
+
+\begin{document}
+
+\maketitle
+
+% \input{0_abstract}
+
+\input{1_introduction}
+
+\input{2_problem_definition}
+
+\input{3_theoretical_analysis}
+
+\input{4_experimentation}
+
+\input{5_related_work}
+
+% \input{5_experimentation}
+
+% \input{6_discussion}
+
+% \input{7_related_work}
+
+% \input{8_conclusion}
+
+% \input{9_acknowledgements}
+
+\bibliographystyle{aaai}
+\bibliography{references}
+
+\end{document}

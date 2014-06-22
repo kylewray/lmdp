@@ -1,0 +1,99 @@
+\section{Theoretical Analysis}
+\label{sec:theoretical_analysis}
+
+We provide a convergence proof for value iteration using $\lvmax$ in Proposition~\ref{prop:lvmax_vi_convergence} below.
+
+\begin{proposition}
+    \label{prop:lvmax_vi_convergence}
+    Lexicographic vector max ($\lvmax$) value iteration as defined by Equation~\ref{eq:lvmax_value_iteration} converges to within $\epsilon > 0$ of the optimal value function $\mathbf{V}^*(s)$, $\forall s \in S$, with termination criterion at time step $t$: $\|V^{t+1} - V^t\|_\infty < \epsilon (1 - \gamma) / \gamma$.
+\end{proposition}
+
+\begin{proof}
+To prove convergence, we must show that the Bellman optimality equation converges to a unique fixed point. First, we define some terms. For a metric space $\langle X, d \rangle$, where $X$ is a set and $d$ is a distance metric, a map $f : X \rightarrow X$ is called a \emph{contraction map} if there exists an $\alpha$ such that $d(f(x), f(y)) = \alpha d(x, y)$, for all $x, y \in X$.
+
+Let the space $X$ be the \emph{space of value function matrices}, i.e., for all $0 \leq t \leq h$ we have $V^t$ defined as follows.
+\begin{equation*}
+    V^t = \begin{bmatrix}
+            V_1^t(s_1) & \cdots & V_1^t(s_n) \\
+            \vdots & & \vdots \\
+            V_k^t(s_1) & \cdots & V_k^t(s_n)
+        \end{bmatrix} \in X
+\end{equation*}
+
+Let the distance metric $d$ be the \emph{max norm}, i.e., $\|V^t\|_\infty = \max_{i \in K} \max_{s \in S} |V_i^t(s)|$. Since we have selected $\gamma \in [0, 1)$, we can show that the metric space $M = \langle X, d \rangle$ is a \emph{complete metric space} (every Cauchy sequence of $M$ converges to a point in $M$).
+
+Let the $\lvmax$ Bellman optimality equation (Equation~\ref{eq:lvmax_value_iteration}) be defined as an operator $B$, such that $V^{t+1} = B V^t$, for value function vectors $V^t, V^{t+1} \in X$. We can prove the Bellman operator $B$ is a contraction map in $M$ from the following logic. Let $V_1^t, V_2^t \in X$ be any two value function vectors, and $\gamma \in [0, 1)$. We first apply the definition of $\lvmax$ from Equation~\ref{eq:lvmax}.
+\begin{align*}
+    &\| B V_1^t - B V_2^t \|_\infty \\
+    &= \max_{i \in K} \max_{s \in S} \Big| \Big( \max_{a \in A_{1,i-1}^t} \sum_{s' \in S} T(s, a, s') (R_i(s, a, s') + \gamma V_{1i}^t(s')) \Big) \\
+    &\quad \quad - \Big( \max_{a \in A_{2,i-1}^t} \sum_{s' \in S} T(s, a, s') (R_i(s, a, s') + \gamma V_{2i}^t(s')) \Big) \Big|
+\end{align*}
+
+Next, we distribute $T(\cdot)$ to each $R_i(\cdot)$ and $V_i(\cdot)$ in the summations, then apply the property: $\max_x f(x) + g(x) \leq \max_x f(x) + \max_x g(x)$, twice.
+\begin{align*}
+    &\| B V_1^t - B V_2^t \|_\infty \\
+    &= \max_{i \in K} \max_{s \in S} \Big| \max_{a \in A_{1,i-1}^t} \Big( \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad + \gamma \sum_{s' \in S} T(s, a, s') V_{1i}^t(s') \Big) \\
+    &\quad \quad - \max_{a \in A_{2,i-1}^t} \Big( \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad - \gamma \sum_{s' \in S} T(s, a, s') V_{2i}^t(s') \Big) \Big| \\
+    &\leq \max_{i \in K} \max_{s \in S} \Big| \max_{a \in A_{1,i-1}^t} \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad + \gamma \max_{a \in A_{1,i-1}^t} \sum_{s' \in S} T(s, a, s') V_{1i}^t(s') \\
+    &\quad \quad - \max_{a \in A_{2,i-1}^t} \sum_{s' \in S} T(s, a, s') R_i(s, a, s') \\
+    &\quad \quad - \gamma \max_{a \in A_{2,i-1}^t} \sum_{s' \in S} T(s, a, s') V_{2i}^t(s') \Big| \\
+    &\leq \max_{i \in K} \max_{s \in S} \Big| \gamma \max_{a \in A_{1,i-1}^t} \sum_{s' \in S} T(s, a, s') V_{1i}^t(s') \\
+    &\quad \quad - \gamma \max_{a \in A_{2,i-1}^t} \sum_{s' \in S} T(s, a, s') V_{2i}^t(s') \Big|
+\end{align*}
+Note that we can pull out $\gamma \in [0, 1)$. Recall, that for any two functions $f$ and $g$, $| \max_x f(x) - \max_x g(x) | \leq \max_x | f(x) - g(x) |$.
+\begin{align*}
+    &\| B V_1^t - B V_2^t \|_\infty \\
+    &\leq \gamma \max_{i \in K} \max_{s \in S} \max_{a \in A_{i-1}^t} \Big| \sum_{s' \in S} T(s, a, s') V_{1i}^t(s') \\
+    &\quad \quad - \sum_{s' \in S} T(s, a, s') V_{2i}^t(s') \Big| \\
+    &\leq \gamma \max_{i \in K} \max_{s \in S} \max_{a \in A_{i-1}^t} \Big| \sum_{s' \in S} T(s, a, s') (V_{1i}^t(s') - V_{2i}^t(s')) \Big|
+\end{align*}
+
+Since $\sum_{s' \in S} T(s, a, s') = 1$ and for all $s' \in S$, $T(s, a, s') \in [0, 1]$, it is defined on the $n$-simplex. We then scale the vertices by the values $R_i(\cdot)$ or $V_i(\cdot)$. This forms simple convex polytope. Convex polytopes obtain their maximum value at the vertices (or on an entire edge or face, which includes the vertices). Therefore, we may exclusively maximize over these vertices ($R_i(\cdot)$ and $V_i(\cdot)$), and may simply drop both maximizations which select the weights (i.e., maximization over $s \in S$ and $a \in A_{i-1}$).
+\begin{align*}
+    \| B V_1^t - B V_2^t \|_\infty &\leq \gamma \max_{i \in K} \max_{s' \in S} \Big| V_{1i}^t(s') - V_{2i}^t(s') \Big| \\
+        &\leq \gamma \| V_1^t - V_2^t \|_\infty
+\end{align*}
+
+Now we have our final result, which proves that the Bellman operator $B$ is a contraction map on metric space $M$.
+\begin{equation*}
+    \| B V_1^t - B V_2^t \|_\infty \leq \gamma \| V_1^t - V_2^t \|_\infty
+\end{equation*}
+
+By definition of a contraction map, $B$ has at most one fixed point. Additionally, since $M$ is a complete metric space, we can guarantee convergence to a unique fixed point. \emph{Banach's fixed point theorem} states that if $M = \langle X, d \rangle$ is a complete metric space and $B: X \rightarrow X$ is a contraction map, then $B$ admits a unique fixed point $V^* \in X$, i.e., $B V^* = V^*$. Thus, we will have convergence of value iteration to a unique fixed point $V^* \in X$, which is a value function vector with dimension equal to the size of the state space.
+
+Finally, a corollary of Banach's fixed point theorem is that the speed of convergence to within $\epsilon > 0$ of the fixed point $x^*$ is known (using the generic notation from above for a metric space).
+\begin{align*}
+    d(x^*, x_{t+1}) &\leq \frac{\alpha}{1 - \alpha} d(x_{t+1}, x_t) \\
+    \| V^* - V^{t+1}\|_\infty &\leq \frac{\gamma}{1 - \gamma} \| V^{t+1} - V^t \|_\infty
+\end{align*}
+It is an interesting side fact that $\gamma$ is the \emph{Lipschitz constant} for the Bellman operator $B$. This contraction map property comes from Banach's fixed point theorem.
+
+Since we want the distance from the fixed point $V^* \in X$ to be $\epsilon$, we may rewrite the equation accordingly.
+\begin{align*}
+    \epsilon &\leq \frac{\gamma}{1 - \gamma} \| V^{t+1} - V^t \|_\infty \\
+    \epsilon \frac{1 - \gamma}{\gamma} &\leq \| V^{t+1} - V^t \|_\infty
+\end{align*}
+The above equation states that we are at least $\epsilon$ (or more) away from the fixed point when the maximum difference (over the states) between iterations satisfies the inequality. Therefore, we flip the inequality to create a convergence criterion, which ensures that we are $\epsilon$ or less from the fixed point.
+\begin{equation*}
+    \quad \| V^{t+1} - V^t \|_\infty < \epsilon \frac{1 - \gamma}{\gamma}
+\end{equation*}
+
+In summary, we know that the iteration of Bellman's optimality equation converges to a unique fixed point in the space of value function vectors, and we know how to check for convergence to within $\epsilon > 0$ of the fixed point.
+\end{proof}
+
+Typically, a multi-objective optimization problem converts the problem into a objective function by summing the various objectives and weighting them in a particular manner. The possible policies returned by our $\lvmax$ value iteration is unique from the canonical weighted function approaches used to solve MOMDPs. Proposition~\ref{prop:lvmax_vi_uniqueness} proves this fact.
+
+Let the set of all policies returned by value iteration operator $B$ be denoted as $\Pi_B$. Formally, we say that the value iteration operator $B$ is \emph{unique} with respect to value iteration operator $B'$, if and only for some $\epsilon > 0$ and $\gamma \in [0, 1)$ in MDP $M = \langle S, A, T, R \rangle$, $\Pi_B \not\subseteq \Pi_{B'}$ and $\Pi_{B'} \not\subseteq \Pi_B$.
+
+\begin{proposition}
+    \label{prop:lvmax_vi_uniqueness}
+    For $\epsilon > 0$ and $\gamma \in [0, 1)$, let $\Pi_{vi}$ be the set of all policies returned by value iteration operator $B_{vi}$ using a weighted objective function with weights $\mathbf{w} \in \mathbb{R}^k$. Also, let $\Pi_{lv}$ be the set of all policies returned by value iteration operator $B_{lv}$ as defined by Equation~\ref{eq:lvmax_value_iteration} with $\epsilon$ and $\gamma$. $B_{lv}$ is unique with respect to $B_{vi}$.
+\end{proposition}
+
+\begin{proof}
+By the definition of uniqueness, must show that there exists an MDP $M = \langle S, A, T, R \rangle$ such that $\Pi_{vi} \not\subseteq \Pi_{lv}$ and $\Pi_{lv} \not\subseteq \Pi_{vi}$. Assume by contradiction that $\forall M$, $\Pi_{vi} \subseteq \Pi_{lv}$ or $\Pi_{lv} \subset \Pi_{vi}$.
+
+\end{proof}
