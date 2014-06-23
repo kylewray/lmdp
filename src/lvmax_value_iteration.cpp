@@ -113,29 +113,6 @@ PolicyMap *LVMaxValueIteration::solve_finite_horizon(const FiniteStates *S, cons
 		const FiniteStateTransitions *T, const FactoredRewards *R, const Horizon *h,
 		const std::vector<double> &delta)
 {
-	/*
-	// Create the policy based on the horizon.
-	PolicyMap *policy = new PolicyMap(h);
-
-	// The value of a states and state's actions.
-	std::unordered_map<const State *, double> V;
-
-	// Continue to iterate until the maximum difference between two V[s]'s is less than the tolerance.
-	for (int t = h->get_horizon() - 1; t >= 0; t--){
-		// For all the states, compute V(s).
-		for (auto state : *S) {
-			const State *s = resolve(state);
-			const Action *aBest = nullptr;
-
-			//bellman_update(S, A, T, R, h, s, V, aBest);
-
-			// Set the policy's action, which will yield the optimal policy at the end.
-			policy->set(t, s, aBest);
-		}
-	}
-
-	return policy;
-	*/
 	return nullptr;
 }
 
@@ -392,11 +369,11 @@ void LVMaxValueIteration::lvmax(const FiniteStates *S, std::vector<const Action 
 	// shifted by 1 order of magnitude above machine precision.
 	double offset = 0.0; //std::numeric_limits<double>::epsilon() * 10.0;
 	if (!star) {
-		/* Normal Delta_i.
+		//* Normal Delta_i.
 		offset += deltai;
 		//*/
 
-		//* Experiment: Delta_i * (1 - gamma) / gamma
+		/* Experiment: Delta_i * (1 - gamma) / gamma
 		offset += deltai * (1.0 - h->get_discount_factor()) / h->get_discount_factor();
 		//*/
 	}
