@@ -127,6 +127,16 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 	std::vector<std::unordered_map<const State *, double> > V;
 	V.resize(R->get_num_rewards());
 
+	//* Awesome
+	std::vector<std::unordered_map<const State *, double> > VStar;
+	VStar.resize(R->get_num_rewards());
+
+	std::vector<bool> lockedVStar;
+	for (int i = 0; i < R->get_num_rewards(); i++) {
+		lockedVStar.push_back(false);
+	}
+	//*/
+
 	/* Method #2
 	// The current actions which are locked in place. Initially, this is all actions, but every time
 	// one of the value functions converges, it locks the actions to a subset for the next one.
@@ -142,7 +152,8 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 
 	// Compute the convergence criterion which follows from the proof of convergence.
 	//* Method #1
-	double nu = std::numeric_limits<double>::lowest();
+//	double nu = std::numeric_limits<double>::lowest();
+	double nu = -std::numeric_limits<double>::max();
 	//*/
 	/* Method #2
 	std::vector<double> nu;
@@ -167,7 +178,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 	}
 
 	// Continue to iterate until the maximum difference between two V[s]'s is less than the tolerance.
-	//* Method #1
+	/* Method #1
 	double convergenceCriterion = epsilon * (1.0 - nu) / nu;
 	double infinityNormedDifference = convergenceCriterion + 1.0;
 	//*/
@@ -176,11 +187,17 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 	double infinityNormedDifference = convergenceCriterion + 1.0;
 	int currentIndex = 0;
 	//*/
+	//* Awesome
+	double convergenceCriterion = epsilon * (1.0 - h->get_discount_factor()) / h->get_discount_factor();
+	double infinityNormedDifference = convergenceCriterion + 1.0;
+	//*/
 
-	/* Delta Prime Test
+	//* Delta Prime Test
 	std::vector<double> infinity;
+	std::vector<double> infinityPrev;
 	for (int i = 0; i < R->get_num_rewards(); i++) {
 		infinity.push_back(0.0);
+		infinityPrev.push_back(0.0);
 	}
 	//*/
 
@@ -190,7 +207,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 	/* Method #2
 	while (currentIndex < R->get_num_rewards()) {
 	//*/
-		std::cout << "lvmax Value Iteration: " << infinityNormedDifference << " vs " << convergenceCriterion << std::endl;
+//		std::cout << "lvmax Value Iteration: " << infinityNormedDifference << " vs " << convergenceCriterion << std::endl;
 
 		/* Method #2
 		if (infinityNormedDifference < convergenceCriterion) {
@@ -211,7 +228,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 
 		infinityNormedDifference = 0.0;
 
-		/* Delta Prime Test
+		//* Delta Prime Test
 		for (int i = 0; i < R->get_num_rewards(); i++) {
 			infinity[i] = 0.0;
 		}
@@ -256,9 +273,21 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			// Starting with a set of all actions, prune each following the definition of lvmax.
 			for (int i = 0; i < R->get_num_rewards(); i++) {
 				const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
+				/* Normal
 				lvmax(S, AStar, T, Ri, h, s, Vtmp[i], delta[i], false); // Note: Do not update V, use delta.
+				//*/
 				/* Delta Prime Test
 				lvmax(S, AStar, T, Ri, h, s, Vtmp[i], deltaPrime[i], false); // Note: Do not update V, use delta.
+				//*/
+				//* Awesome
+				double eta = infinityPrev[i] * (h->get_discount_factor()) / (1.0 - h->get_discount_factor());
+
+				// If you converged for i, then use VStar[i]. Otherwise, use Vtmp[i]. This assumes VStar[i] is set before hand.
+				if (lockedVStar[i]) {
+					lvmax(S, AStar, T, Ri, h, s, Vtmp[i], VStar[i], delta[i], eta, false); // Note: Do not update V, use delta.
+				} else {
+					lvmax(S, AStar, T, Ri, h, s, Vtmp[i], Vtmp[i], delta[i], eta, false); // Note: Do not update V, use delta.
+				}
 				//*/
 
 				/* Method #2
@@ -272,9 +301,18 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			// Break the final ties using strict argmax.
 			for (int i = 0; i < R->get_num_rewards(); i++) {
 				const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
+				/* Normal
 				lvmax(S, AStar, T, Ri, h, s, Vtmp[i], delta[i], true); // Note: Update V, don't use delta.
+				//*/
 				/* Delta Prime Test
 //				lvmax(S, AStar, T, Ri, h, s, Vtmp[i], deltaPrime[i], true); // Note: Update V, don't use delta.
+				//*/
+				//* Awesome
+				if (lockedVStar[i]) {
+					lvmax(S, AStar, T, Ri, h, s, Vtmp[i], VStar[i], 0.0, 0.0, false); // Note: Do NOT update V, don't use delta.
+				} else {
+					lvmax(S, AStar, T, Ri, h, s, Vtmp[i], Vtmp[i], 0.0, 0.0, true); // Note: Update V, don't use delta.
+				}
 				//*/
 			}
 
@@ -292,7 +330,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			}
 			//*/
 
-			/* Delta Prime Test
+			//* Delta Prime Test
 			for (int i = 0; i < R->get_num_rewards(); i++) {
 				if (fabs(V[i][s] - Vtmp[i][s]) > infinity[i]) {
 					infinity[i] = fabs(V[i][s] - Vtmp[i][s]);
@@ -301,12 +339,13 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			//*/
 
 			// ----- DEBUG -----
-			// NOTE: For some reason,
+			/*
 			for (int i = 0; i < R->get_num_rewards(); i++) {
 				if (fabs(V[i][s] - Vtmp[i][s]) > 0.01) {
 					std::cout << "For V_" << i << ", state '" << s->to_string() << "' has diff = " << fabs(V[i][s] - Vtmp[i][s]) << std::endl;
 				}
-			}
+			}*/
+			// ----- DEBUG -----
 
 			// Update the value of the state for each i in K.
 			for (int i = 0; i < R->get_num_rewards(); i++) {
@@ -317,8 +356,26 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			policy->set(s, AStar[0]);
 		}
 
+		for (int i = 0; i < R->get_num_rewards(); i++) {
+			std::cout << "Infinity: " << infinity[0] << "\t" << infinity[1] << std::endl;
+		}
+
+		for (int i = 0; i < R->get_num_rewards(); i++) {
+			infinityPrev[i] = infinity[i];
+
+			// If you converged, lock VStar[i].
+			if (!lockedVStar[i] && infinityPrev[i] < convergenceCriterion) {
+				std::cout << "Yay, " << i << " has converged!" << std::endl;
+				for (auto state : *S) {
+					const State *s = resolve(state);
+					VStar[i][s] = V[i][s];
+				}
+				lockedVStar[i] = true;
+			}
+		}
+
 		// ----- DEBUG -----
-		//*
+		/*
 		int size = 8;
 		for (int i = 0; i < V.size(); i++) {
 			for (int y = 0; y < size; y++) {
@@ -343,15 +400,20 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 
 void LVMaxValueIteration::lvmax(const FiniteStates *S, std::vector<const Action *> &AiStar,
 		const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h, const State *s,
-		std::unordered_map<const State *, double> &Vi, double deltai, bool star)
+		std::unordered_map<const State *, double> &Vi, std::unordered_map<const State *, double> &VStari,
+		double deltai, double etai, bool star)
 {
-	double maxQisa = std::numeric_limits<double>::lowest();
+//	double maxQisa = std::numeric_limits<double>::lowest();
+	double maxQisa = -std::numeric_limits<double>::max();
 
 	std::vector<double> Qis;
 
 	// For all the actions, compute max Q_i(s, a) over the current set of actions.
-	for (const Action *a : AiStar) {
+	for (int i = 0; i < AiStar.size(); i++) {
+		const Action *a = AiStar[i];
+
 		// Compute the Q_i(s, a) estimate.
+		/* Normal
 		double Qisa = compute_Q(S, T, Ri, h, s, a, Vi);
 		Qis.push_back(Qisa);
 
@@ -359,6 +421,16 @@ void LVMaxValueIteration::lvmax(const FiniteStates *S, std::vector<const Action 
 		if (Qisa > maxQisa) {
 			maxQisa = Qisa;
 		}
+		//*/
+		//* Awesome
+		double Qisa = compute_Q(S, T, Ri, h, s, a, VStari);
+		Qis.push_back(Qisa);
+
+		// Determine the maximum Q_i(s, a) value.
+		if (Qisa > maxQisa) {
+			maxQisa = Qisa;
+		}
+		//*/
 	}
 
 	// Based on if this is a star pass (the second pass through) or not, update the actions differently. This
@@ -367,20 +439,36 @@ void LVMaxValueIteration::lvmax(const FiniteStates *S, std::vector<const Action 
 
 	// In the case of a first pass, we need to use delta_i; however, in the second pass we use 0.0. Both will be
 	// shifted by 1 order of magnitude above machine precision.
+	/*
 	double offset = 0.0; //std::numeric_limits<double>::epsilon() * 10.0;
 	if (!star) {
-		//* Normal Delta_i.
+		// Normal Delta_i.
 		offset += deltai;
-		//*/
 
-		/* Experiment: Delta_i * (1 - gamma) / gamma
+		// Experiment: Delta_i * (1 - gamma) / gamma
 		offset += deltai * (1.0 - h->get_discount_factor()) / h->get_discount_factor();
-		//*/
 	}
+	*/
 
 	// Keep all of the actions which are within 1 order of magnitude from machine precision of the max Q value.
 	for (int i = 0; i < AiStar.size(); i++) {
-		if (std::fabs(maxQisa - Qis[i]) <= offset) {
+		// Compute the difference, but account for machine precision issues within 1 order of magnitude.
+		double difference = maxQisa - Qis[i];
+		if (std::fabs(difference) < std::numeric_limits<double>::epsilon() * 10.0) {
+			difference = 0.0;
+		}
+
+		double comparison = std::fmax(0.0, deltai - etai);
+		if (!star) {
+			comparison = 0.0;
+		}
+
+//		if (comparison > 0.0) {
+//			std::cout << "Check for " << i << ": " << difference << "\t<=\t" << comparison << std::endl;
+//		}
+
+		// If the inequality holds, then keep the action!
+		if (difference <= comparison) {
 			newAiStar.push_back(AiStar[i]);
 		}
 	}

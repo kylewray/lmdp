@@ -120,13 +120,16 @@ private:
 	 * @param	h 		The horizon.
 	 * @param	s 		The current state being examined, i.e., V_i(s).
 	 * @param	Vi		The current Bellman backup, mapping states to expected rewards. This may be updated.
+	 * @param	VStari	The converged value of the state (if any).
 	 * @param	deltai	The slack value for i in K.
+	 * @param	etai	The error compensation for i in K.
 	 * @param	star	If this is the star pass (second pass over actions) or not. This changes if V is
 	 * 					updated and if delta is used at all.
 	 */
 	void lvmax(const FiniteStates *S, std::vector<const Action *> &AiStar,
 			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h, const State *s,
-			std::unordered_map<const State *, double> &Vi, double deltai, bool star);
+			std::unordered_map<const State *, double> &Vi, std::unordered_map<const State *, double> &VStari,
+			double deltai, double etai, bool star);
 
 	/**
 	 * Compute the value of Q_i(s, a) for some state and action.
