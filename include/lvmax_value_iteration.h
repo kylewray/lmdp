@@ -110,26 +110,54 @@ private:
 			const std::vector<double> &delta);
 
 	/**
-	 * Following lvmax, compute the Bellman update/backup for a given reward index and state, then
-	 * compute the action which achieves the highest Q_i(s, a), and store the value and action in the
-	 * variables provided.
+	 * Compute A_{i+1}^t given that the value function for i, V_i^t, has NOT yet converged.
 	 * @param	S 		The finite states.
-	 * @param	AiStar	The set of actions, which are likely pruned. This will be updated.
+	 * @param	Ai		The set of actions, which are likely pruned. This will be updated for A_{i+1}.
 	 * @param	T 		The finite state transition function.
 	 * @param	Ri 		The state-action-state rewards.
 	 * @param	h 		The horizon.
 	 * @param	s 		The current state being examined, i.e., V_i(s).
-	 * @param	Vi		The current Bellman backup, mapping states to expected rewards. This may be updated.
-	 * @param	VStari	The converged value of the state (if any).
-	 * @param	deltai	The slack value for i in K.
-	 * @param	etai	The error compensation for i in K.
-	 * @param	star	If this is the star pass (second pass over actions) or not. This changes if V is
-	 * 					updated and if delta is used at all.
+	 * @param	Vi		The i-th value function.
+	 * @param	AiPlus1	The new set of actions for i + 1.
 	 */
-	void lvmax(const FiniteStates *S, std::vector<const Action *> &AiStar,
-			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h, const State *s,
-			std::unordered_map<const State *, double> &Vi, std::unordered_map<const State *, double> &VStari,
-			double deltai, double etai, bool star);
+	void compute_A_argmax(const FiniteStates *S, const std::vector<const Action *> &Ai,
+			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+			const State *s, const std::unordered_map<const State *, double> &Vi,
+			std::vector<const Action *> &AiPlus1);
+
+	/**
+	 * Compute A_{i+1}^t given that the value function for i, V_i^*, has already converged.
+	 * @param	S 		The finite states.
+	 * @param	Ai		The set of actions, which are likely pruned. This will be updated for A_{i+1}.
+	 * @param	T 		The finite state transition function.
+	 * @param	Ri 		The state-action-state rewards.
+	 * @param	h 		The horizon.
+	 * @param	s 		The current state being examined, i.e., V_i(s).
+	 * @param	Vi		The i-th value function.
+	 * @param	deltai	The slack value for i in K.
+	 * @param	AiPlus1	The new set of actions for i + 1.
+	 */
+	void compute_A_delta(const FiniteStates *S, const std::vector<const Action *> &Ai,
+			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+			const State *s, const std::unordered_map<const State *, double> &Vi,
+			double deltai, std::vector<const Action *> &AiPlus1);
+
+	/**
+	 * Compute V_i^{t+1} given that the value function for i, V_i^t.
+	 * @param	S 		The finite states.
+	 * @param	Ai		The set of actions, which are likely pruned.
+	 * @param	T 		The finite state transition function.
+	 * @param	Ri 		The state-action-state rewards.
+	 * @param	h 		The horizon.
+	 * @param	s 		The current state being examined, i.e., V_i(s).
+	 * @param	Vi		The i-th value function at time t.
+	 * @param	ViNext	The i-th value function at time t+1. This will be updated.
+	 * @param	a		The action taken to obtain the max value. This will be updated.
+	 */
+	void compute_V(const FiniteStates *S, const std::vector<const Action *> &Ai,
+			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+			const State *s, const std::unordered_map<const State *, double> &Vi,
+			std::unordered_map<const State *, double> &ViNext, const Action *&a);
 
 	/**
 	 * Compute the value of Q_i(s, a) for some state and action.
@@ -143,7 +171,7 @@ private:
 	 * @return	Returns the Q_i(s, a) value.
 	 */
 	double compute_Q(const FiniteStates *S, const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
-			const State *s, const Action *a, std::unordered_map<const State *, double> &Vi);
+			const State *s, const Action *a, const std::unordered_map<const State *, double> &Vi);
 
 	/**
 	 * The tolerance convergence criterion.

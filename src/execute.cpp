@@ -58,13 +58,14 @@ int main(int argc, char *argv[]) {
 
 	//* Grid World Version.
 
-//	GridMDP *gridMDP = new GridMDP(0, 8, 5, -0.03); // This causes divergence with state '1 0'... no clue why.
+//	GridMDP *gridMDP = new GridMDP(0, 5, 0, -0.03);
 	GridMDP *gridMDP = new GridMDP(0, 8, 10, -0.03);
 
-	LVMaxValueIteration solver(0.00001);
+	LVMaxValueIteration solver(0.0001);
 
 	std::vector<double> delta;
-	delta.push_back(0.1);
+	delta.push_back(0.0);
+	delta.push_back(0.0);
 	delta.push_back(0.0);
 
 	PolicyMap *policy = solver.solve(gridMDP, delta);

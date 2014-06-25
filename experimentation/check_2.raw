@@ -33,41 +33,41 @@ Value Iteration: Convergence Check: 0.019683 vs 1.11111e-05
 Value Iteration: Convergence Check: 0.0177147 vs 1.11111e-05
 Value Iteration: Convergence Check: 0.0159432 vs 1.11111e-05
 Value Iteration: Convergence Check: 0.0143489 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.0082209 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.00588004 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.00290569 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.00192226 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.000906371 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.00056457 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.000261517 vs 1.11111e-05
-Value Iteration: Convergence Check: 0.000156953 vs 1.11111e-05
-Value Iteration: Convergence Check: 7.22846e-05 vs 1.11111e-05
-Value Iteration: Convergence Check: 4.23219e-05 vs 1.11111e-05
-Value Iteration: Convergence Check: 1.94853e-05 vs 1.11111e-05
-Value Iteration: Convergence Check: 1.12099e-05 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.00841173 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.00581041 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.00325981 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.00200994 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.00105864 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.000613889 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.000314061 vs 1.11111e-05
+Value Iteration: Convergence Check: 0.000175715 vs 1.11111e-05
+Value Iteration: Convergence Check: 8.86748e-05 vs 1.11111e-05
+Value Iteration: Convergence Check: 4.85195e-05 vs 1.11111e-05
+Value Iteration: Convergence Check: 2.43401e-05 vs 1.11111e-05
+Value Iteration: Convergence Check: 1.31243e-05 vs 1.11111e-05
 Computing Final Values: Convergence Check: 1.00001 vs 1.11111e-05
 Computing Final Values: Convergence Check: 1.00001 vs 1.11111e-05
 Computing Final Values: Convergence Check: 0.794 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.193013 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0999365 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0485866 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0189458 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.00656687 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.00211783 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.000651183 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.000193702 vs 1.11111e-05
-Computing Final Values: Convergence Check: 5.62718e-05 vs 1.11111e-05
-Computing Final Values: Convergence Check: 1.60681e-05 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.187331 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.0948039 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.0479655 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.0200818 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.00752032 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.00261092 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.000858588 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.000271356 vs 1.11111e-05
+Computing Final Values: Convergence Check: 8.32937e-05 vs 1.11111e-05
+Computing Final Values: Convergence Check: 2.50241e-05 vs 1.11111e-05
 Computing Final Values: Convergence Check: 1.00001 vs 1.11111e-05
 Computing Final Values: Convergence Check: 0.127079 vs 1.11111e-05
 Computing Final Values: Convergence Check: 0.0901903 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0371811 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0130256 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.0041482 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.00125491 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.000367719 vs 1.11111e-05
-Computing Final Values: Convergence Check: 0.000105483 vs 1.11111e-05
-Computing Final Values: Convergence Check: 2.98148e-05 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.0368558 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.0124191 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.00400987 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.00126892 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.000394486 vs 1.11111e-05
+Computing Final Values: Convergence Check: 0.000120562 vs 1.11111e-05
+Computing Final Values: Convergence Check: 3.62782e-05 vs 1.11111e-05
 V[0]:
 0,0,0,0,0,
 0,0,0,0,0,
@@ -82,11 +82,11 @@ V[0]:
 
 
 V[1]:
-0.217788,0.278525,0.344048,0.293485,0,
-0.28211,0.358278,0.44801,0.548424,0.643181,
-0.353438,0.44801,0.550565,0.666968,0.786023,
-0.394241,0.548424,0.666968,0.800937,0.951741,
--0.0270445,0.643181,0.786023,0.951741,0,
+0.204201,0.265311,0.340501,0.290638,0,
+0.26659,0.342067,0.445092,0.548017,0.643124,
+0.335848,0.4278,0.548589,0.666774,0.786002,
+0.375993,0.525279,0.666774,0.800918,0.951739,
+-0.0270445,0.640875,0.786002,0.951739,0,
 -0.191195,-0.179617,-0.166202,-0.17671,0,
 -0.17753,-0.163127,-0.144629,-0.123787,-0.104108,
 -0.162321,-0.144629,-0.123343,-0.0991681,-0.0744414,
@@ -95,11 +95,11 @@ V[1]:
 
 
 V[2]:
--0.184702,-0.17845,-0.166029,-0.17657,0,
--0.16947,-0.162339,-0.144552,-0.12378,-0.104107,
--0.152232,-0.144552,-0.123335,-0.0991672,-0.0744412,
--0.0322561,-0.12378,-0.0991672,-0.0713436,-0.040023,
--0.0270445,-0.104107,-0.0744412,-0.040023,0,
+-0.179908,-0.173788,-0.164777,-0.175565,0,
+-0.163994,-0.15662,-0.143522,-0.123636,-0.104087,
+-0.146026,-0.137422,-0.122638,-0.0990989,-0.0744339,
+-0.0258183,-0.115614,-0.0990989,-0.0713369,-0.0400223,
+-0.0270445,-0.103294,-0.0744339,-0.0400223,0,
 -0.191194,-0.179617,-0.166202,-0.176708,0,
 -0.17753,-0.163127,-0.144629,-0.123787,-0.104108,
 -0.162321,-0.144629,-0.123342,-0.0991679,-0.0744413,
@@ -111,8 +111,8 @@ c = 0
 . . . . . . . 
 . v v v < - .
 . v v v v v .
-. > > > v v .
-. > > > > v .
+. > v v v v .
+. > v > > v .
 . c > > > + .
 . . . . . . . 
 c = 1
