@@ -59,13 +59,13 @@ int main(int argc, char *argv[]) {
 	//* Grid World Version.
 
 //	GridMDP *gridMDP = new GridMDP(0, 5, 0, -0.03);
-	GridMDP *gridMDP = new GridMDP(0, 8, 10, -0.03);
+	GridMDP *gridMDP = new GridMDP(1, 8, 10, -0.03);
 
 	LVMaxValueIteration solver(0.0001);
 
 	std::vector<double> delta;
 	delta.push_back(0.0);
-	delta.push_back(0.0);
+	delta.push_back(0.2);
 	delta.push_back(0.0);
 
 	PolicyMap *policy = solver.solve(gridMDP, delta);

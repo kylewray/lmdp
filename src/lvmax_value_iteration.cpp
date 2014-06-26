@@ -206,21 +206,6 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 			// Use the delta function to compute the final set of AStar[i + 1].
 			compute_A_delta(S, AStar[i][s], T, Ri, h, s, V[i], delta[i], AStar[i + 1][s]);
 		}
-
-		/* Quick Debug
-		std::cout << "For i = " << i << ", AStar[" << (i + 1) << "][\"1 3 0\"] = { ";
-		const State *tmp = S->get(NamedState::hash_value("1 3 0"));
-		for (const Action *a : AStar[i + 1][tmp]) {
-			std::cout << a->to_string() << " ";
-		}
-		std::cout << "}" << std::endl;
-		std::cout << "...and AStar[" << (i + 1) << "][\"1 3 1\"] = { ";
-		tmp = S->get(NamedState::hash_value("1 3 1"));
-		for (const Action *a : AStar[i + 1][tmp]) {
-			std::cout << a->to_string() << " ";
-		}
-		std::cout << "}" << std::endl;
-		//*/
 	}
 
 	// At the very end, compute the final values of V following the policy.
@@ -256,7 +241,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
 	}
 
 	// Output the pretty values in a table format for the GridMDP object!
-    int size = 5;
+    int size = 8;
 
 	for (int i = 0; i < R->get_num_rewards(); i++) {
         std::cout << "V[" << i << "]:" << std::endl;
@@ -268,9 +253,12 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const FiniteStates *S, co
                 for (int x = 0; x < size; x++) {
                     try {
                         const State *s = S->get(NamedState::hash_value(std::to_string(x) + " " + std::to_string(y) + " " + std::to_string(c)));
-                        std::cout << V[i][s] << ",";
+                        std::cout << V[i][s];
+                        if (x < size - 1) {
+                        	std::cout << ",";
+                        }
                     } catch (const StateException &err) {
-                        std::cout << " ";
+                        std::cout << "0.0,";
                     }
                 }
                 std::cout << std::endl;
