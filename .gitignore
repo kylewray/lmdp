@@ -1,3 +1,4 @@
 /Execute
 liblosm.dylib
 librbr.dylib
+libnova_cuda.so
