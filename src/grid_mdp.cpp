@@ -23,9 +23,9 @@
 
 #include "../include/grid_mdp.h"
 
-#include "../../librbr/librbr/include/core/states/finite_states.h"
-#include "../../librbr/librbr/include/core/actions/finite_actions.h"
-#include "../../librbr/librbr/include/core/state_transitions/finite_state_transitions.h"
+#include "../../librbr/librbr/include/core/states/states_map.h"
+#include "../../librbr/librbr/include/core/actions/actions_map.h"
+#include "../../librbr/librbr/include/core/state_transitions/state_transitions_map.h"
 #include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
 #include "../../librbr/librbr/include/core/rewards/sas_rewards_map.h"
 #include "../../librbr/librbr/include/core/initial.h"
@@ -94,7 +94,7 @@ void GridMDP::print(const PolicyMap *policy)
                 } else if (std::find(blocked.begin(), blocked.end(), stateHashValue) != blocked.end()) {
                     std::cout << "x";
                 } else {
-                    const Action *action = policy->get(((FiniteStates *)states)->get(stateHashValue));
+                    const Action *action = policy->get(((StatesMap *)states)->get(stateHashValue));
 
                     if (action->hash_value() == actionNorth) {
                         std::cout << "^";
@@ -122,7 +122,7 @@ void GridMDP::print(const PolicyMap *policy)
 
 void GridMDP::create_states()
 {
-	states = new FiniteStates();
+	states = new StatesMap();
 
 	// The grid world's size is determined by the size variable.
 	for (int c = 0; c <= 1; c++) {
@@ -132,7 +132,7 @@ void GridMDP::create_states()
                 unsigned int current = NamedState::hash_value(name);
 
                 if (std::find(blocked.begin(), blocked.end(), current) == blocked.end()) {
-                    ((FiniteStates *)states)->add(new NamedState(name));
+                    ((StatesMap *)states)->add(new NamedState(name));
                 }
             }
         }
@@ -141,18 +141,18 @@ void GridMDP::create_states()
 
 void GridMDP::create_actions()
 {
-	actions = new FiniteActions();
+	actions = new ActionsMap();
 
 	// There will only be four actions to move around the grid world.
-	((FiniteActions *)actions)->add(new NamedAction("North"));
-	((FiniteActions *)actions)->add(new NamedAction("South"));
-	((FiniteActions *)actions)->add(new NamedAction("East"));
-	((FiniteActions *)actions)->add(new NamedAction("West"));
+	((ActionsMap *)actions)->add(new NamedAction("North"));
+	((ActionsMap *)actions)->add(new NamedAction("South"));
+	((ActionsMap *)actions)->add(new NamedAction("East"));
+	((ActionsMap *)actions)->add(new NamedAction("West"));
 }
 
 void GridMDP::create_state_transitions()
 {
-	stateTransitions = new FiniteStateTransitions();
+	stateTransitions = new StateTransitionsMap();
 
 	// Loop over all starting states.
 	for (int c = 0; c <= 1; c++) {
@@ -172,10 +172,10 @@ void GridMDP::create_state_transitions()
 
                 // Only do all the work below if this is not one of the two absorbing state corners (top and bottom right).
                 if ((x == size - 1 && y == 0) || (x == size - 1 && y == size - 1)) {
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
                         nullptr,
-                        ((FiniteStates *)states)->get(current),
+                        ((StatesMap *)states)->get(current),
                         1.0);
                     continue;
                 }
@@ -187,59 +187,59 @@ void GridMDP::create_state_transitions()
                 	unsigned int northNoCookie = NamedState::hash_value(std::to_string(x) + " " + std::to_string(y - 1) + " 1");
                 	unsigned int eastNoCookie= NamedState::hash_value(std::to_string(x + 1) + " " + std::to_string(y) + " 1");
 
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.8);
 
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(eastNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(eastNoCookie),
                         0.1);
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.1);
 
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(eastNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(eastNoCookie),
                         0.1);
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.9);
 
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.1);
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(eastNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(eastNoCookie),
                         0.8);
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.1);
 
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(northNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(northNoCookie),
                         0.1);
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(currentNoCookie),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(currentNoCookie),
                         0.9);
 
                     continue;
@@ -265,31 +265,31 @@ void GridMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'north' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(north),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(north),
                         forward);
                 }
                 if (left > 0.0) { // The hash 'west' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(west),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(west),
                         left);
                 }
                 if (right > 0.0) { // The hash 'east' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(east),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(east),
                         right);
                 }
                 if (stuck > 0.0) {
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("North")),
-                        ((FiniteStates *)states)->get(current),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("North")),
+                        ((StatesMap *)states)->get(current),
                         stuck);
                 }
 
@@ -313,31 +313,31 @@ void GridMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'south' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(south),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(south),
                         forward);
                 }
                 if (right > 0.0) { // The hash 'west' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(west),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(west),
                         right);
                 }
                 if (left > 0.0) { // The hash 'east' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(east),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(east),
                         left);
                 }
                 if (stuck > 0.0) {
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("South")),
-                        ((FiniteStates *)states)->get(current),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("South")),
+                        ((StatesMap *)states)->get(current),
                         stuck);
                 }
 
@@ -361,31 +361,31 @@ void GridMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'east' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(east),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(east),
                         forward);
                 }
                 if (left > 0.0) { // The hash 'north' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(north),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(north),
                         left);
                 }
                 if (right > 0.0) { // The hash 'south' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(south),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(south),
                         right);
                 }
                 if (stuck > 0.0) {
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("East")),
-                        ((FiniteStates *)states)->get(current),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("East")),
+                        ((StatesMap *)states)->get(current),
                         stuck);
                 }
 
@@ -409,31 +409,31 @@ void GridMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'west' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(west),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(west),
                         forward);
                 }
                 if (right > 0.0) { // The hash 'north' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(north),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(north),
                         right);
                 }
                 if (left > 0.0) { // The hash 'south' must be a valid state.
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(south),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(south),
                         left);
                 }
                 if (stuck > 0.0) {
-                    ((FiniteStateTransitions *)stateTransitions)->set(
-                        ((FiniteStates *)states)->get(current),
-                        ((FiniteActions *)actions)->get(NamedAction::hash_value("West")),
-                        ((FiniteStates *)states)->get(current),
+                    ((StateTransitionsMap *)stateTransitions)->set(
+                        ((StatesMap *)states)->get(current),
+                        ((ActionsMap *)actions)->get(NamedAction::hash_value("West")),
+                        ((StatesMap *)states)->get(current),
                         stuck);
                 }
             }
@@ -451,10 +451,10 @@ void GridMDP::create_rewards()
 
 	// Top right penalty.
 	primary->set(nullptr, nullptr,
-			((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+			((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 			-1.0);
 	primary->set(nullptr, nullptr,
-			((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+			((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 			-1.0);
 
 	// Small penalty for travel. Not for the dead end, since it seems to want to avoid the dead end with all
@@ -463,21 +463,21 @@ void GridMDP::create_rewards()
 //	primary->set(nullptr, nullptr, nullptr, penalty);
 
 	// Zero for absorbing states.
-	primary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+	primary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					0.0);
-	primary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+	primary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					0.0);
-	primary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+	primary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					0.0);
-	primary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+	primary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					0.0);
 
 	// Create the secondary reward in the bottom left corner, an absorbing state.
@@ -486,31 +486,31 @@ void GridMDP::create_rewards()
 
 	// Bottom right reward.
 	secondary->set(nullptr, nullptr,
-			((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+			((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 			1.0);
 	secondary->set(nullptr, nullptr,
-			((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+			((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 			1.0);
 
 	// Small penalty for travel.
 	secondary->set(nullptr, nullptr, nullptr, penalty);
 
 	// Zero for absorbing states.
-	secondary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+	secondary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					0.0);
-	secondary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+	secondary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					0.0);
-	secondary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+	secondary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					0.0);
-	secondary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+	secondary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					0.0);
 
 	//*
@@ -520,7 +520,7 @@ void GridMDP::create_rewards()
 
 	// Bottom left reward.
 	tertiary->set(nullptr, nullptr,
-			((FiniteStates *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 0")),
+			((StatesMap *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 0")),
 			1.0);
 //	tertiary->set(nullptr, nullptr,
 //			((FiniteStates *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 1")),
@@ -530,21 +530,21 @@ void GridMDP::create_rewards()
 	tertiary->set(nullptr, nullptr, nullptr, penalty);
 
 	// Zero for absorbing states.
-	tertiary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+	tertiary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 0")),
 					0.0);
-	tertiary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+	tertiary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 0")),
 					0.0);
-	tertiary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+	tertiary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " " + std::to_string(size - 1) + " 1")),
 					0.0);
-	tertiary->set(((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+	tertiary->set(((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					nullptr,
-					((FiniteStates *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
+					((StatesMap *)states)->get(NamedState::hash_value(std::to_string(size - 1) + " 0 1")),
 					0.0);
 	//*/
 }
@@ -552,7 +552,7 @@ void GridMDP::create_rewards()
 void GridMDP::create_misc()
 {
 	// The initial state is the top left cell.
-	initialState = new Initial(((FiniteStates *)states)->get(NamedState::hash_value("0 0 0")));
+	initialState = new Initial(((StatesMap *)states)->get(NamedState::hash_value("0 0 0")));
 
 	// Infinite horizon with a discount factor of 0.9.
 	horizon = new Horizon(0.9);

@@ -25,10 +25,11 @@
 #include "../include/losm_mdp.h"
 #include "../include/losm_state.h"
 
-#include "../../librbr/librbr/include/core/states/finite_states.h"
-#include "../../librbr/librbr/include/core/actions/finite_actions.h"
-#include "../../librbr/librbr/include/core/state_transitions/finite_state_transitions.h"
+#include "../../librbr/librbr/include/core/states/states_map.h"
+#include "../../librbr/librbr/include/core/actions/actions_map.h"
+#include "../../librbr/librbr/include/core/state_transitions/state_transitions_map.h"
 #include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
+#include "../../librbr/librbr/include/core/rewards/sas_rewards_map.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
 
@@ -56,15 +57,15 @@ LOSMMDP::~LOSMMDP()
 
 void LOSMMDP::create_states(LOSM *losm)
 {
-	states = new FiniteStates();
+	states = new StatesMap();
 
 	// Create the set of states from the LOSM object's nodes.
 	for (const LOSMNode *node : losm->get_nodes()) {
 		LOSMState *state = new LOSMState(node, false);
-		((FiniteStates *)states)->add(state);
+		((StatesMap *)states)->add(state);
 
 		state = new LOSMState(node, true);
-		((FiniteStates *)states)->add(state);
+		((StatesMap *)states)->add(state);
 	}
 }
 
@@ -75,33 +76,33 @@ void LOSMMDP::create_actions(LOSM *losm)
 	left = new NamedAction("Left");
 	uTurn = new NamedAction("U-Turn");
 
-	actions = new FiniteActions();
-	((FiniteActions *)actions)->add(forward);
-	((FiniteActions *)actions)->add(right);
-	((FiniteActions *)actions)->add(left);
-	((FiniteActions *)actions)->add(uTurn);
+	actions = new ActionsMap();
+	((ActionsMap *)actions)->add(forward);
+	((ActionsMap *)actions)->add(right);
+	((ActionsMap *)actions)->add(left);
+	((ActionsMap *)actions)->add(uTurn);
 }
 
 void LOSMMDP::create_state_transitions(LOSM *losm)
 {
 	// Use a temporary variable to find the forward action.
 	const Action *findAction = new NamedAction("Forward");
-	const Action *forward = ((FiniteActions *)actions)->get(findAction->hash_value());
+	const Action *forward = ((ActionsMap *)actions)->get(findAction->hash_value());
 	delete findAction;
 
 	// Use a temporary variable to find the left action.
 	findAction = new NamedAction("Left");
-	const Action *left = ((FiniteActions *)actions)->get(findAction->hash_value());
+	const Action *left = ((ActionsMap *)actions)->get(findAction->hash_value());
 	delete findAction;
 
 	// Use a temporary variable to find the right action.
 	findAction = new NamedAction("Right");
-	const Action *right = ((FiniteActions *)actions)->get(findAction->hash_value());
+	const Action *right = ((ActionsMap *)actions)->get(findAction->hash_value());
 	delete findAction;
 
 	// Use a temporary variable to find the right action.
 	findAction = new NamedAction("U-Turn");
-	const Action *uTurn = ((FiniteActions *)actions)->get(findAction->hash_value());
+	const Action *uTurn = ((ActionsMap *)actions)->get(findAction->hash_value());
 	delete findAction;
 
 	for (const LOSMEdge *edge : losm->get_edges()) {
@@ -111,22 +112,22 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 		// Use a temporary variable to find the first state.
 		const LOSMState *findState = new LOSMState(n1, false);
-		const State *s1 = ((FiniteStates *)states)->get(findState->hash_value());
+		const State *s1 = ((StatesMap *)states)->get(findState->hash_value());
 		delete findState;
 
 		// Use a temporary variable to find the first state in the opposite direction.
 		findState = new LOSMState(n1, true);
-		const State *s1r = ((FiniteStates *)states)->get(findState->hash_value());
+		const State *s1r = ((StatesMap *)states)->get(findState->hash_value());
 		delete findState;
 
 		// Use a temporary variable to find the second state.
 		findState = new LOSMState(n2, false);
-		const State *s2 = ((FiniteStates *)states)->get(findState->hash_value());
+		const State *s2 = ((StatesMap *)states)->get(findState->hash_value());
 		delete findState;
 
 		// Use a temporary variable to find the second state in the opposite direction.
 		findState = new LOSMState(n2, true);
-		const State *s2r = ((FiniteStates *)states)->get(findState->hash_value());
+		const State *s2r = ((StatesMap *)states)->get(findState->hash_value());
 		delete findState;
 
 		// Compute the base probability of getting stuck at a node.
@@ -136,8 +137,8 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 		// Now that we have all four states, we need to first link them such that the direction
 		// is preserved when taking each action given node 2 has degree 2, 3, or 4.
 		if (n2->get_degree() == 2) {
-			((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, stuck);
-			((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s2, 1.0 - stuck);
+			((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, stuck);
+			((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - stuck);
 		} else if (n2->get_degree() == 3) {
 			// Get the list of neighbors.
 			std::vector<const LOSMNode *> neighbors;
@@ -153,17 +154,17 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 			// Check if n1 is on the left. If it is, it means it is more likely you'll get stuck here.
 			if (check_left(n2, neighbors[n3Index], n1)) {
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s1, 2.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s2, 1.0 - 3.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, uTurn, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 2.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s2, 1.0 - 3.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
 			} else {
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s2, 1.0 - 3.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, uTurn, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - 3.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
 			}
 		} else if (n2->get_degree() == 4) {
 			// Get the list of neighbors.
@@ -185,31 +186,31 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 			bool leftOfN3 = check_left(n2, neighbors[n3Index], n1);
 			bool leftOfN4 = check_left(n2, neighbors[n4Index], n1);
 			if (leftOfN3 && leftOfN4) {
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s1, 3.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s2, 1.0 - 6.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, uTurn, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 3.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s2, 1.0 - 6.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
 			} else if ((leftOfN3 && !leftOfN4) || (!leftOfN3 && leftOfN4)) {
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, 2.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s2, 1.0 - 6.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, uTurn, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 2.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - 6.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
 			} else {
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s1, stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, right, s2, 1.0 - 6.0 * stuck);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, left, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((FiniteStateTransitions *)stateTransitions)->set(s1, uTurn, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, right, s2, 1.0 - 6.0 * stuck);
+				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
+				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
 			}
 		}
 
 		// Now that we have all four states, we need to first link them such that the direction
 		// is preserved when taking each action given node 1 has degree 2, 3, or 4.
 		if (n1->get_degree() == 2) {
-			((FiniteStateTransitions *)stateTransitions)->set(s1r, forward, s1r, stuck);
-			((FiniteStateTransitions *)stateTransitions)->set(s1r, forward, s2r, 1.0 - stuck);
+			((StateTransitionsMap *)stateTransitions)->set(s1r, forward, s1r, stuck);
+			((StateTransitionsMap *)stateTransitions)->set(s1r, forward, s2r, 1.0 - stuck);
 		} else if (n1->get_degree() == 3) {
 
 		} else if (n1->get_degree() == 4) {

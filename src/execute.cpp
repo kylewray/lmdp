@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 	delta.push_back(0.2);
 	delta.push_back(0.0);
 
-	PolicyMap *policy = solver.solve(gridMDP, delta);
+	PolicyMap *policy = solver.solve(gridMDP, delta, true);
 
 	gridMDP->print(policy);
 

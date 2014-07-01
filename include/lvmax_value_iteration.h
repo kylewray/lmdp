@@ -31,11 +31,12 @@
 
 #include "../../librbr/librbr/include/core/policy/policy_map.h"
 
-#include "../../librbr/librbr/include/core/states/finite_states.h"
-#include "../../librbr/librbr/include/core/actions/finite_actions.h"
-#include "../../librbr/librbr/include/core/state_transitions/finite_state_transitions.h"
+#include "../../librbr/librbr/include/core/states/states_map.h"
+#include "../../librbr/librbr/include/core/actions/actions_map.h"
+#include "../../librbr/librbr/include/core/state_transitions/state_transitions_map.h"
 #include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
-#include "../../librbr/librbr/include/core/rewards/sas_rewards.h"
+#include "../../librbr/librbr/include/core/rewards/sas_rewards_map.h"
+#include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
 
 /**
@@ -69,6 +70,7 @@ public:
 	 * Solve the MOMDP provided using lvmax value iteration.
 	 * @param	mdp							The Markov decision process to solve.
 	 * @param	delta						The tuple of slack variables, one for each reward function.
+	 * @param	cuda						If you want to use CUDA.
 	 * @throw	StateException				The MDP did not have a FiniteStates states object.
 	 * @throw	ActionException				The MDP did not have a FiniteActions actions object.
 	 * @throw	StateTransitionsException	The MDP did not have a FiniteStateTransitions state transitions object.
@@ -76,7 +78,7 @@ public:
 	 * @throw	PolicyException				An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	PolicyMap *solve(const MDP *mdp, const std::vector<double> &delta);
+	PolicyMap *solve(const MDP *mdp, const std::vector<double> &delta, bool cuda);
 
 private:
 	/**
@@ -90,8 +92,23 @@ private:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	PolicyMap *solve_finite_horizon(const FiniteStates *S, const FiniteActions *A,
-			const FiniteStateTransitions *T, const FactoredRewards *R, const Horizon *h,
+	PolicyMap *solve_finite_horizon(const StatesMap *S, const ActionsMap *A,
+			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+			const std::vector<double> &delta);
+
+	/**
+	 * Solve an infinite horizon MOMDP using value iteration and leveraging CUDA.
+	 * @param	S					The finite states.
+	 * @param	A					The finite actions.
+	 * @param	T					The finite state transition function.
+	 * @param	R					The factored state-action-state rewards.
+	 * @param	h					The horizon.
+	 * @param	delta				The slack vector.
+	 * @throw	PolicyException		An error occurred computing the policy.
+	 * @return	Return the optimal policy.
+	 */
+	PolicyMap *solve_infinite_horizon_cuda(const StatesMap *S, const ActionsMap *A,
+			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 			const std::vector<double> &delta);
 
 	/**
@@ -105,8 +122,8 @@ private:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	PolicyMap *solve_infinite_horizon(const FiniteStates *S, const FiniteActions *A,
-			const FiniteStateTransitions *T, const FactoredRewards *R, const Horizon *h,
+	PolicyMap *solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
+			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 			const std::vector<double> &delta);
 
 	/**
@@ -120,8 +137,8 @@ private:
 	 * @param	Vi		The i-th value function.
 	 * @param	AiPlus1	The new set of actions for i + 1.
 	 */
-	void compute_A_argmax(const FiniteStates *S, const std::vector<const Action *> &Ai,
-			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+	void compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
+			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			std::vector<const Action *> &AiPlus1);
 
@@ -137,8 +154,8 @@ private:
 	 * @param	deltai	The slack value for i in K.
 	 * @param	AiPlus1	The new set of actions for i + 1.
 	 */
-	void compute_A_delta(const FiniteStates *S, const std::vector<const Action *> &Ai,
-			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+	void compute_A_delta(const StatesMap *S, const std::vector<const Action *> &Ai,
+			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			double deltai, std::vector<const Action *> &AiPlus1);
 
@@ -154,8 +171,8 @@ private:
 	 * @param	ViNext	The i-th value function at time t+1. This will be updated.
 	 * @param	a		The action taken to obtain the max value. This will be updated.
 	 */
-	void compute_V(const FiniteStates *S, const std::vector<const Action *> &Ai,
-			const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
+	void compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
+			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			std::unordered_map<const State *, double> &ViNext, const Action *&a);
 
@@ -170,8 +187,9 @@ private:
 	 * @param	Vi		The i-th value function.
 	 * @return	Returns the Q_i(s, a) value.
 	 */
-	double compute_Q(const FiniteStates *S, const FiniteStateTransitions *T, const SASRewards *Ri, const Horizon *h,
-			const State *s, const Action *a, const std::unordered_map<const State *, double> &Vi);
+	double compute_Q(const StatesMap *S, const StateTransitionsMap *T, const SASRewardsMap *Ri,
+			const Horizon *h, const State *s, const Action *a,
+			const std::unordered_map<const State *, double> &Vi);
 
 	/**
 	 * The tolerance convergence criterion.
