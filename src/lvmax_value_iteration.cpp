@@ -36,6 +36,8 @@
 #include "../../librbr/librbr/include/core/rewards/reward_exception.h"
 #include "../../librbr/librbr/include/core/policy/policy_exception.h"
 
+#include "../../librbr/librbr/include/core/actions/action_utilities.h"
+
 #include <unordered_map>
 #include <math.h>
 
@@ -131,6 +133,9 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 		const std::vector<double> &delta)
 {
+	std::cout << "Initializing...";
+	std::cout.flush();
+
 	// Create the policy based on the horizon.
 	PolicyMap *policy = new PolicyMap(h);
 
@@ -142,7 +147,8 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 	std::vector<std::unordered_map<const State *, double> > VStar;
 	VStar.resize(R->get_num_rewards());
 
-	// Remember the set of actions available to each of the value functions. This will be computed at the end of each step.
+	// Remember the set of actions available to each of the value functions.
+	// This will be computed at the end of each step.
 	std::vector<std::unordered_map<const State *, std::vector<const Action *> > > AStar;
 	AStar.resize(R->get_num_rewards() + 1);
 
@@ -157,8 +163,28 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		}
 	}
 
-	// For each of the value functions, we will compute the actions set.
+	std::cout << "Complete." << std::endl;
+	std::cout.flush();
+
+	// Create the array-based MDPs first.
+	std::vector<const MDP *> mdp;
 	for (int i = 0; i < R->get_num_rewards(); i++) {
+		std::cout << "Constructing Array-Based MDP for Reward " << (i + 1) << "... ";
+		std::cout.flush();
+
+		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
+		MDP *newMDP = convert_map_to_array(S, A, T, Ri, s0, h);
+		mdp.push_back(newMDP);
+
+		std::cout << "Complete." << std::endl;
+		std::cout.flush();
+	}
+
+	// For each of the value functions, we will solve the MDP and then compute the next actions set.
+	for (int i = 0; i < R->get_num_rewards(); i++) {
+		std::cout << "Initializing Data for Reward " << (i + 1) << "... ";
+		std::cout.flush();
+
 		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
 
 		// Setup V[i] with initial values of 0.0.
@@ -167,33 +193,130 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 			V[i][s] = 0.0;
 		}
 
-		// Create the array-based MDP, as well as reserve the memory for the strategy.
-		MDP *mdp = convert_map_to_array(S, A, T, Ri, s0, h);
+		// Reserve the memory for the value functions and strategy.
+		float *Vcuda = new float[S->get_num_states()];
+		unsigned int *picuda = new unsigned int[S->get_num_states()];
 
-		float *V = new float[S->get_num_states()];
-		unsigned int *pi = new unsigned int[S->get_num_states()];
 		for (int s = 0; s < S->get_num_states(); s++) {
-			V[s] = 0.0f;
-			pi[s] = 0;
+			Vcuda[s] = 0.0f;
+			picuda[s] = 0;
 		}
+
+		// Create the array of available actions, represented as a boolean.
+		bool *AStarcuda = new bool[S->get_num_states() * A->get_num_actions()];
+		int st = 0;
+
+		for (auto state : *S) {
+			const State *s = resolve(state);
+			int at = 0;
+
+			for (auto action : *A) {
+				const Action *a = resolve(action);
+
+				if (std::find(AStar[i][s].begin(), AStar[i][s].end(), a) != AStar[i][s].end()) {
+					AStarcuda[st * A->get_num_actions() + at] = true;
+				} else {
+					AStarcuda[st * A->get_num_actions() + at] = false;
+				}
+
+				at++;
+			}
+
+			st++;
+		}
+
+		std::cout << "Complete." << std::endl;
+		std::cout.flush();
+
+		std::cout << "Executing Value Iteration with CUDA... ";
+		std::cout.flush();
 
 		// Run value iteration optimized with CUDA!
-		int result = value_iteration(S->get_num_states(), A->get_num_actions(),
-				((const StateTransitionsArray *)mdp->get_state_transitions())->get_state_transitions(),
-				((const SASRewardsArray *)mdp->get_rewards())->get_rewards(),
-				((const SASRewardsArray *)mdp->get_rewards())->get_max(),
-				h->get_discount_factor(), epsilon, pi,
-				8 * 8 * 2, 128);
+		int result = value_iteration_restricted_actions(
+				S->get_num_states(),
+				A->get_num_actions(),
+				(const bool *)AStarcuda,
+				((const StateTransitionsArray *)mdp[i]->get_state_transitions())->get_state_transitions(),
+				((const SASRewardsArray *)mdp[i]->get_rewards())->get_rewards(),
+				(float)((const SASRewardsArray *)mdp[i]->get_rewards())->get_max(),
+				(float)h->get_discount_factor(),
+				(float)epsilon,
+				Vcuda,
+				picuda,
+				(int)std::ceil((double)S->get_num_states() / 32.0),
+				32);
 
-		// Check the result.
+//		int result = value_iteration(S->get_num_states(),
+//				A->get_num_actions(),
+//				((const StateTransitionsArray *)mdp->get_state_transitions())->get_state_transitions(),
+//				((const SASRewardsArray *)mdp->get_rewards())->get_rewards(),
+//				(float)((const SASRewardsArray *)mdp->get_rewards())->get_max(),
+//				(float)h->get_discount_factor(),
+//				(float)epsilon,
+//				Vcuda,
+//				picuda,
+//				(int)std::ceil((double)S->get_num_states() / 32.0),
+//				32);
+
+		std::cout << "Complete." << std::endl;
+		std::cout.flush();
+
+		// Check the result. If successful, then copy the resultant value function and policy.
 		if (result == 0) {
+			std::cout << "Verifying and copying data... ";
+			std::cout.flush();
 
+			int sj = 0;
+
+			for (auto state : *S) {
+				const State *s = resolve(state);
+
+				// Set the value of the state.
+				V[i][s] = Vcuda[sj];
+
+				// Set the policy.
+				int aj = 0;
+
+				for (auto action :*A) {
+					if (aj == picuda[sj]) {
+						const Action *a = resolve(action);
+						policy->set(s, a);
+						break;
+					}
+
+					aj++;
+				}
+
+				sj++;
+			}
+
+			std::cout << "Complete." << std::endl;
+			std::cout.flush();
 		}
 
-		// Free the memory at each loop, since the MDP has been solved now.
-		delete mdp;
-	}
+		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
+		std::cout << "Updating A_{i+1}^*... ";
+		std::cout.flush();
 
+		for (auto state : *S) {
+			const State *s = resolve(state);
+
+			// Use the delta function to compute the final set of AStar[i + 1].
+			compute_A_delta(S, AStar[i][s], T, Ri, h, s, V[i], delta[i], AStar[i + 1][s]);
+		}
+
+		std::cout << "Complete." << std::endl;
+		std::cout.flush();
+
+		// Free the memory at each loop, since the MDP has been solved now.
+		delete mdp[i];
+		delete Vcuda;
+		delete picuda;
+		delete AStarcuda;
+	}
+	mdp.clear();
+
+	/*
 	// Output the pretty values in a table format for the GridMDP object!
     int size = 8;
 
@@ -221,9 +344,9 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 
         std::cout << "\n\n";
 	}
+	//*/
 
-
-	return nullptr;
+	return policy;
 }
 
 PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,

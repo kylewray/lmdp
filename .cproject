@@ -14,7 +14,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.macosx.exe.release.25319114" name="Execute" parent="cdt.managedbuild.config.macosx.exe.release" preannouncebuildStep="Copy the libraries, once they are built, from the 'librbr' and 'losm' projects to this project." prebuildStep="cp &quot;${ProjDirPath}/../librbr/librbr/BuildLibrary/librbr.dylib&quot; &quot;${ProjDirPath}/librbr.dylib&quot;; cp &quot;${ProjDirPath}/../losm/losm/BuildLibrary/liblosm.dylib&quot; &quot;${ProjDirPath}/liblosm.dylib&quot;; cp &quot;${ProjDirPath}/../nova/nova_cuda/BuildLibrary/libnova_cuda.so&quot; &quot;${ProjDirPath}/libnova_cuda.so&quot;">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.macosx.exe.release.25319114" name="Execute" parent="cdt.managedbuild.config.macosx.exe.release" preannouncebuildStep="Copy the libraries, once they are built, from the 'librbr', 'losm', and 'nova_cuda' projects to this project." prebuildStep="cp &quot;${ProjDirPath}/../librbr/librbr/BuildLibrary/librbr.dylib&quot; &quot;${ProjDirPath}/librbr.dylib&quot;; cp &quot;${ProjDirPath}/../losm/losm/BuildLibrary/liblosm.dylib&quot; &quot;${ProjDirPath}/liblosm.dylib&quot;; cp &quot;${ProjDirPath}/../nova/nova_cuda/BuildLibrary/libnova_cuda.dylib&quot; &quot;${ProjDirPath}/libnova_cuda.dylib&quot;">
 					<folderInfo id="cdt.managedbuild.config.macosx.exe.release.25319114." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.macosx.exe.release.2020031083" name="MacOSX GCC" superClass="cdt.managedbuild.toolchain.gnu.macosx.exe.release">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.macosx.exe.release.900660834" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.macosx.exe.release"/>
@@ -27,10 +27,11 @@
 									<listOptionValue builtIn="false" value="nova_cuda"/>
 								</option>
 								<option id="macosx.cpp.link.option.paths.197731124" name="Library search path (-L)" superClass="macosx.cpp.link.option.paths" valueType="libPaths">
-									<listOptionValue builtIn="false" value="../nova/nova_cuda/BuildLibrary"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm/BuildLibrary}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr/BuildLibrary}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../nova/nova_cuda/BuildLibrary&quot;"/>
 								</option>
+								<option id="macosx.cpp.link.option.shared.782127763" name="Shared (-dynamiclib)" superClass="macosx.cpp.link.option.shared" value="false" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.macosx.cpp.linker.input.318384808" superClass="cdt.managedbuild.tool.macosx.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -40,7 +41,7 @@
 								<option id="gnu.both.asm.option.include.paths.1898577517" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
-									<listOptionValue builtIn="false" value="../../nova/nova_cuda"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../nova/nova_cuda/BuildLibrary&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2098223967" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -48,12 +49,13 @@
 							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release.1469505963" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release">
 								<option id="gnu.cpp.compiler.macosx.exe.release.option.optimization.level.1567568280" name="Optimization Level" superClass="gnu.cpp.compiler.macosx.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.macosx.exe.release.option.debugging.level.1129955376" name="Debug Level" superClass="gnu.cpp.compiler.macosx.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.other.other.729270561" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -std=c++0x" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.729270561" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -std=c++0x -Wl -rpath &quot;/usr/local/cuda/lib&quot;" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.include.paths.634519022" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
-									<listOptionValue builtIn="false" value="../../nova/nova_cuda"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/nova_cuda}&quot;"/>
 								</option>
+								<option id="gnu.cpp.compiler.option.other.pic.1338359225" name="Position Independent Code (-fPIC)" superClass="gnu.cpp.compiler.option.other.pic" value="false" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.223076573" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.459266973" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release">
@@ -62,6 +64,7 @@
 								<option id="gnu.c.compiler.option.include.paths.679238532" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/nova_cuda}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.955541292" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
