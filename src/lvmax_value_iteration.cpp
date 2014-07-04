@@ -23,6 +23,11 @@
  */
 
 
+#include <unistd.h>
+
+
+
+
 #include "../include/lvmax_value_iteration.h"
 
 #include "../../librbr/librbr/include/management/conversion.h"
@@ -78,25 +83,23 @@ PolicyMap *LVMaxValueIteration::solve(const MDP *mdp, const std::vector<double> 
 		throw ActionException();
 	}
 
-	// Attempt to convert the state transitions object into FiniteStateTransitions.
-	const StateTransitionsMap *T =
-			dynamic_cast<const StateTransitionsMap *>(mdp->get_state_transitions());
-	if (T == nullptr) {
-		throw StateTransitionException();
-	}
+	// Note: All forms of StateTransitions objects are valid here, since they all require get.
+	const StateTransitions *T = mdp->get_state_transitions();
 
 	// Attempt to convert the rewards object into FactoredRewards. Also, ensure that the
-	// type of each element is SASRewardsMap.
+	// type of each element is SASRewards.
 	const FactoredRewards *R = dynamic_cast<const FactoredRewards *>(mdp->get_rewards());
 	if (R == nullptr) {
 		throw RewardException();
 	}
+	/*
 	for (int i = 0; i < R->get_num_rewards(); i++) {
-		const SASRewardsMap *Ri = dynamic_cast<const SASRewardsMap *>(R->get(i));
+		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(i));
 		if (Ri == nullptr) {
 			throw RewardException();
 		}
 	}
+	*/
 
 	// Handle the other trivial case in which the slack variables were incorrectly defined.
 	if (delta.size() != R->get_num_rewards()) {
@@ -123,14 +126,14 @@ PolicyMap *LVMaxValueIteration::solve(const MDP *mdp, const std::vector<double> 
 }
 
 PolicyMap *LVMaxValueIteration::solve_finite_horizon(const StatesMap *S, const ActionsMap *A,
-		const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+		const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 		const std::vector<double> &delta)
 {
 	return nullptr;
 }
 
 PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, const ActionsMap *A,
-		const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+		const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 		const std::vector<double> &delta)
 {
 	std::cout << "Initializing...";
@@ -166,26 +169,28 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 	std::cout << "Complete." << std::endl;
 	std::cout.flush();
 
+	/* Assume an array-absed MDP is given.
 	// Create the array-based MDPs first.
 	std::vector<const MDP *> mdp;
 	for (int i = 0; i < R->get_num_rewards(); i++) {
 		std::cout << "Constructing Array-Based MDP for Reward " << (i + 1) << "... ";
 		std::cout.flush();
 
-		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
+		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
 		MDP *newMDP = convert_map_to_array(S, A, T, Ri, s0, h);
 		mdp.push_back(newMDP);
 
 		std::cout << "Complete." << std::endl;
 		std::cout.flush();
 	}
+	//*/
 
 	// For each of the value functions, we will solve the MDP and then compute the next actions set.
 	for (int i = 0; i < R->get_num_rewards(); i++) {
 		std::cout << "Initializing Data for Reward " << (i + 1) << "... ";
 		std::cout.flush();
 
-		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
+		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
 
 		// Setup V[i] with initial values of 0.0.
 		for (auto state : *S) {
@@ -194,39 +199,38 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		}
 
 		// Reserve the memory for the value functions and strategy.
-		float *Vcuda = new float[S->get_num_states()];
-		unsigned int *picuda = new unsigned int[S->get_num_states()];
+		float *cudaV = new float[S->get_num_states()];
+		unsigned int *cudaPI = new unsigned int[S->get_num_states()];
 
 		for (int s = 0; s < S->get_num_states(); s++) {
-			Vcuda[s] = 0.0f;
-			picuda[s] = 0;
+			cudaV[s] = 0.0f;
+			cudaPI[s] = 0;
 		}
 
 		// Create the array of available actions, represented as a boolean.
-		bool *AStarcuda = new bool[S->get_num_states() * A->get_num_actions()];
-		int st = 0;
+		bool *cudaAStar = new bool[S->get_num_states() * A->get_num_actions()];
+		for (int j = 0; j < S->get_num_states(); j++) {
+			const State *s = S->get(j);
 
-		for (auto state : *S) {
-			const State *s = resolve(state);
-			int at = 0;
-
-			for (auto action : *A) {
-				const Action *a = resolve(action);
+			for (int k = 0; k < A->get_num_actions(); k++) {
+				const Action *a = A->get(k);
 
 				if (std::find(AStar[i][s].begin(), AStar[i][s].end(), a) != AStar[i][s].end()) {
-					AStarcuda[st * A->get_num_actions() + at] = true;
+					cudaAStar[j * A->get_num_actions() + k] = true;
 				} else {
-					AStarcuda[st * A->get_num_actions() + at] = false;
+					cudaAStar[j * A->get_num_actions() + k] = false;
 				}
-
-				at++;
 			}
-
-			st++;
 		}
 
 		std::cout << "Complete." << std::endl;
 		std::cout.flush();
+
+//		std::cout << "Waiting... " << std::endl;
+//		std::cout.flush();
+//		usleep(500000);
+//		std::cout << "Complete." << std::endl;
+//		std::cout.flush();
 
 		std::cout << "Executing Value Iteration with CUDA... ";
 		std::cout.flush();
@@ -235,16 +239,16 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		int result = value_iteration_restricted_actions(
 				S->get_num_states(),
 				A->get_num_actions(),
-				(const bool *)AStarcuda,
-				((const StateTransitionsArray *)mdp[i]->get_state_transitions())->get_state_transitions(),
-				((const SASRewardsArray *)mdp[i]->get_rewards())->get_rewards(),
-				(float)((const SASRewardsArray *)mdp[i]->get_rewards())->get_max(),
+				(const bool *)cudaAStar,
+				((const StateTransitionsArray *)T)->get_state_transitions(),
+				((const SASRewardsArray *)R->get(i))->get_rewards(),
+				(float)((const SASRewardsArray *)R->get(i))->get_max(),
 				(float)h->get_discount_factor(),
 				(float)epsilon,
-				Vcuda,
-				picuda,
-				(int)std::ceil((double)S->get_num_states() / 32.0),
-				32);
+				cudaV,
+				cudaPI,
+				(int)std::ceil((double)S->get_num_states() / 128.0),
+				128);
 
 //		int result = value_iteration(S->get_num_states(),
 //				A->get_num_actions(),
@@ -261,38 +265,42 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		std::cout << "Complete." << std::endl;
 		std::cout.flush();
 
+//		std::cout << "Waiting... " << std::endl;
+//		std::cout.flush();
+//		usleep(500000);
+//		std::cout << "Complete." << std::endl;
+//		std::cout.flush();
+
 		// Check the result. If successful, then copy the resultant value function and policy.
 		if (result == 0) {
 			std::cout << "Verifying and copying data... ";
 			std::cout.flush();
 
-			int sj = 0;
-
-			for (auto state : *S) {
-				const State *s = resolve(state);
+			for (int j = 0; j < S->get_num_states(); j++) {
+				const State *s = S->get(j);
 
 				// Set the value of the state.
-				V[i][s] = Vcuda[sj];
+				V[i][s] = cudaV[j];
 
 				// Set the policy.
-				int aj = 0;
-
-				for (auto action :*A) {
-					if (aj == picuda[sj]) {
-						const Action *a = resolve(action);
+				for (int k = 0; k < A->get_num_actions(); k++) {
+					if (k == cudaPI[j]) {
+						const Action *a = A->get(k);
 						policy->set(s, a);
 						break;
 					}
-
-					aj++;
 				}
-
-				sj++;
 			}
 
 			std::cout << "Complete." << std::endl;
 			std::cout.flush();
 		}
+
+//		std::cout << "Waiting... " << std::endl;
+//		std::cout.flush();
+//		usleep(500000);
+//		std::cout << "Complete." << std::endl;
+//		std::cout.flush();
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
 		std::cout << "Updating A_{i+1}^*... ";
@@ -308,13 +316,19 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 		std::cout << "Complete." << std::endl;
 		std::cout.flush();
 
+//		std::cout << "Waiting... " << std::endl;
+//		std::cout.flush();
+//		usleep(500000);
+//		std::cout << "Complete." << std::endl;
+//		std::cout.flush();
+
 		// Free the memory at each loop, since the MDP has been solved now.
-		delete mdp[i];
-		delete Vcuda;
-		delete picuda;
-		delete AStarcuda;
+//		delete mdp[i];
+		delete cudaV;
+		delete cudaPI;
+		delete cudaAStar;
 	}
-	mdp.clear();
+//	mdp.clear();
 
 	/*
 	// Output the pretty values in a table format for the GridMDP object!
@@ -350,7 +364,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon_cuda(const StatesMap *S, 
 }
 
 PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-		const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+		const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 		const std::vector<double> &delta)
 {
 	// Create the policy based on the horizon.
@@ -384,7 +398,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const
 
 	// For each of the value functions, we will compute the actions set.
 	for (int i = 0; i < R->get_num_rewards(); i++) {
-		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
+		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
 
 		// Setup V[i] with initial values of 0.0.
 		for (auto state : *S) {
@@ -443,7 +457,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const
 
 	// At the very end, compute the final values of V following the policy.
 	for (int i = 0; i < R->get_num_rewards(); i++) {
-		const SASRewardsMap *Ri = static_cast<const SASRewardsMap *>(R->get(i));
+		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(i));
 
 		for (auto state : *S) {
 			const State *s = resolve(state);
@@ -473,6 +487,7 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const
 		}
 	}
 
+	/*
 	// Output the pretty values in a table format for the GridMDP object!
     int size = 8;
 
@@ -500,12 +515,13 @@ PolicyMap *LVMaxValueIteration::solve_infinite_horizon(const StatesMap *S, const
 
         std::cout << "\n\n";
 	}
+	//*/
 
 	return policy;
 }
 
 void LVMaxValueIteration::compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 		const State *s, const std::unordered_map<const State *, double> &Vi,
 		std::vector<const Action *> &AiPlus1)
 {
@@ -513,7 +529,7 @@ void LVMaxValueIteration::compute_A_argmax(const StatesMap *S, const std::vector
 }
 
 void LVMaxValueIteration::compute_A_delta(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 		const State *s, const std::unordered_map<const State *, double> &Vi,
 		double deltai, std::vector<const Action *> &AiPlus1)
 {
@@ -547,7 +563,7 @@ void LVMaxValueIteration::compute_A_delta(const StatesMap *S, const std::vector<
 }
 
 void LVMaxValueIteration::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 		const State *s, const std::unordered_map<const State *, double> &Vi,
 		std::unordered_map<const State *, double> &ViNext, const Action *&a)
 {
@@ -566,7 +582,7 @@ void LVMaxValueIteration::compute_V(const StatesMap *S, const std::vector<const 
 	}
 }
 
-double LVMaxValueIteration::compute_Q(const StatesMap *S, const StateTransitionsMap *T, const SASRewardsMap *Ri,
+double LVMaxValueIteration::compute_Q(const StatesMap *S, const StateTransitions *T, const SASRewards *Ri,
 		const Horizon *h, const State *s, const Action *a, const std::unordered_map<const State *, double> &Vi)
 {
 	// Compute the Q_i(s, a) estimate.

@@ -33,9 +33,9 @@
 
 #include "../../librbr/librbr/include/core/states/states_map.h"
 #include "../../librbr/librbr/include/core/actions/actions_map.h"
-#include "../../librbr/librbr/include/core/state_transitions/state_transitions_map.h"
+#include "../../librbr/librbr/include/core/state_transitions/state_transitions.h"
 #include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
-#include "../../librbr/librbr/include/core/rewards/sas_rewards_map.h"
+#include "../../librbr/librbr/include/core/rewards/sas_rewards.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
 
@@ -93,22 +93,22 @@ private:
 	 * @return	Return the optimal policy.
 	 */
 	PolicyMap *solve_finite_horizon(const StatesMap *S, const ActionsMap *A,
-			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 			const std::vector<double> &delta);
 
 	/**
 	 * Solve an infinite horizon MOMDP using value iteration and leveraging CUDA.
 	 * @param	S					The finite states.
 	 * @param	A					The finite actions.
-	 * @param	T					The finite state transition function.
-	 * @param	R					The factored state-action-state rewards.
+	 * @param	T					The finite state transition function, as an array.
+	 * @param	R					The factored state-action-state rewards, with each as an array.
 	 * @param	h					The horizon.
 	 * @param	delta				The slack vector.
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
 	PolicyMap *solve_infinite_horizon_cuda(const StatesMap *S, const ActionsMap *A,
-			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 			const std::vector<double> &delta);
 
 	/**
@@ -123,7 +123,7 @@ private:
 	 * @return	Return the optimal policy.
 	 */
 	PolicyMap *solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-			const StateTransitionsMap *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
+			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
 			const std::vector<double> &delta);
 
 	/**
@@ -138,7 +138,7 @@ private:
 	 * @param	AiPlus1	The new set of actions for i + 1.
 	 */
 	void compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			std::vector<const Action *> &AiPlus1);
 
@@ -155,7 +155,7 @@ private:
 	 * @param	AiPlus1	The new set of actions for i + 1.
 	 */
 	void compute_A_delta(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			double deltai, std::vector<const Action *> &AiPlus1);
 
@@ -172,7 +172,7 @@ private:
 	 * @param	a		The action taken to obtain the max value. This will be updated.
 	 */
 	void compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitionsMap *T, const SASRewardsMap *Ri, const Horizon *h,
+			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
 			const State *s, const std::unordered_map<const State *, double> &Vi,
 			std::unordered_map<const State *, double> &ViNext, const Action *&a);
 
@@ -187,7 +187,7 @@ private:
 	 * @param	Vi		The i-th value function.
 	 * @return	Returns the Q_i(s, a) value.
 	 */
-	double compute_Q(const StatesMap *S, const StateTransitionsMap *T, const SASRewardsMap *Ri,
+	double compute_Q(const StatesMap *S, const StateTransitions *T, const SASRewards *Ri,
 			const Horizon *h, const State *s, const Action *a,
 			const std::unordered_map<const State *, double> &Vi);
 
