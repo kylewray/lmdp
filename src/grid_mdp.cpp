@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2014 Kyle Wray
+ *  Copyright (c) 2014 Kyle Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -21,6 +21,7 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 #include "../include/grid_mdp.h"
 
 #include "../../librbr/librbr/include/core/states/states_map.h"
@@ -36,6 +37,7 @@
 
 #include <iostream>
 #include <random>
+#include <algorithm>
 
 GridMDP::GridMDP(unsigned int seed, unsigned int gridSize, unsigned int numBlockedStates, double tertiaryPenalty)
 {

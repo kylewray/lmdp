@@ -1,8 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2014 Kyle Wray
- *  Copyright (c) 2013-2014 Kyle Wray and Luis Pineda
+ *  Copyright (c) 2014 Kyle Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -26,8 +25,6 @@
 #include <unistd.h>
 
 
-
-
 #include "../include/lvmax_value_iteration.h"
 
 #include "../../librbr/librbr/include/management/conversion.h"
@@ -46,10 +43,12 @@
 #include <unordered_map>
 #include <math.h>
 
-#include "../../nova/nova_cuda/include/nova_cuda.h"
+#include "../../nova/nova/include/mdp_value_iteration.h"
 
 #include <iostream> // NOTE: REMOVE ME AT SOME POINT!
 #include "../../librbr/librbr/include/core/states/named_state.h" // NOTE: REMOVE ME AT SOME POINT!
+
+#include <algorithm>
 
 LVMaxValueIteration::LVMaxValueIteration()
 {
