@@ -23,7 +23,7 @@
 
 
 #include "../include/losm_mdp.h"
-#include "../include/grid_mdp.h"
+#include "../include/grid_lmdp.h"
 
 #include "../include/lvmax_value_iteration.h"
 
@@ -41,7 +41,7 @@
 #include <iostream>
 #include <unordered_map>
 
-PolicyMap *convert_policy(PolicyMap *policy, const MDP *src, const MDP *dest)
+PolicyMap *convert_policy(const PolicyMap *policy, const MDP *src, const MDP *dest)
 {
 	const StatesMap *srcS = dynamic_cast<const StatesMap *>(src->get_states());
 	const ActionsMap *srcA = dynamic_cast<const ActionsMap *>(src->get_actions());
@@ -114,37 +114,27 @@ int main(int argc, char *argv[]) {
 
 	RawFile rawFile;
 
-//	GridMDP *gridMDPOriginal = new GridMDP(0, 5, 0, -0.03);
-//	GridMDP *gridMDPOriginal = new GridMDP(1, 8, 10, -0.03);
-	GridMDP *gridMDPOriginal = new GridMDP(1, 20, 30, -0.03);
-//	GridMDP *gridMDPOriginal = new GridMDP(1, 25, 0, -0.03);
+	GridLMDP *gridLMDP = new GridLMDP(0, 5, 0, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(1, 8, 10, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
-//	rawFile.save_raw_mdp(gridMDPOriginal, "grid_0_5_0.raw_mdp");
-//	rawFile.save_raw_mdp(gridMDPOriginal, "grid_1_8_10.raw_mdp");
-//	rawFile.save_raw_mdp(gridMDPOriginal, "grid_1_20_30.raw_mdp");
-//	rawFile.save_raw_mdp(gridMDPOriginal, "grid_1_25_0.raw_mdp");
-
-//	GridMDP *gridMDPFast = (GridMDP *)rawFile.load_raw_mdp("grid_0_5_0.raw_mdp");
-//	GridMDP *gridMDPFast = (GridMDP *)rawFile.load_raw_mdp("grid_1_8_10.raw_mdp");
-	GridMDP *gridMDPFast = (GridMDP *)rawFile.load_raw_mdp("grid_1_20_30.raw_mdp");
-//	GridMDP *gridMDPFast = (GridMDP *)rawFile.load_raw_mdp("grid_1_25_0.raw_mdp");
+	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
+	gridLMDP->set_default_conditional_preference();
 
 	LVMaxValueIteration solver(0.0001);
 
 	std::vector<double> delta;
-	delta.push_back(0.0);
-	delta.push_back(0.5);
-	delta.push_back(0.0);
+	delta.push_back(0.0f);
+	delta.push_back(0.0f);
+	delta.push_back(0.0f);
 
-	PolicyMap *policyFast = solver.solve(gridMDPFast, delta, true);
-	PolicyMap *policyOriginal = convert_policy(policyFast, gridMDPFast, gridMDPOriginal);
+	PolicyMap *policy = solver.solve(gridLMDP, delta, false);
 
-	gridMDPOriginal->print(policyOriginal);
+	gridLMDP->print(policy);
 
-	delete policyOriginal;
-	delete policyFast;
-	delete gridMDPOriginal;
-	delete gridMDPFast;
+	delete policy;
+	delete gridLMDP;
 
 	//*/
 

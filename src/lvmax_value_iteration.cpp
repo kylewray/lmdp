@@ -24,7 +24,6 @@
 
 #include <unistd.h>
 
-
 #include "../include/lvmax_value_iteration.h"
 
 #include "../../librbr/librbr/include/management/conversion.h"

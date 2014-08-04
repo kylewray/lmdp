@@ -22,8 +22,8 @@
  */
 
 
-#ifndef LVMAX_VALUE_ITERATION_H
-#define LVMAX_VALUE_ITERATION_H
+#ifndef GLEVI_H
+#define GLEVI_H
 
 
 #include "../../librbr/librbr/include/mdp/mdp.h"
@@ -37,6 +37,8 @@
 #include "../../librbr/librbr/include/core/rewards/sas_rewards.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
+
+#include <unordered_map>
 
 /**
  * Solve an Multi-Objective MDP (MOMDP) via lvmax value iteration (finite or infinite horizon).
@@ -198,4 +200,4 @@ private:
 };
 
 
-#endif // LVMAX_VALUE_ITERATION_H
+#endif // GLEVI_H

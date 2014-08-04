@@ -22,11 +22,12 @@
  */
 
 
-#ifndef GRID_MDP_H
-#define GRID_MDP_H
+#ifndef GRID_LMDP_H
+#define GRID_LMDP_H
 
 
-#include "../../librbr/librbr/include/mdp/mdp.h"
+#include "lmdp.h"
+
 #include "../../librbr/librbr/include/core/policy/policy_map.h"
 
 #include "../../librbr/librbr/include/core/states/state.h"
@@ -36,23 +37,43 @@
 #include <string>
 
 /**
- * A simple grid world Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences.
+ * A simple grid world LMDP.
  */
-class GridMDP : public MDP {
+class GridLMDP : public LMDP {
 public:
 	/**
-	 * The default constructor for the GridMDP class.
+	 * The default constructor for the GridLMDP class.
 	 * @param	seed				The random seed to use.
 	 * @param	gridSize			The size of the grid world.
 	 * @param	numBlockedStates	The number of blocked states.
 	 * @param	tertiaryPenalty		The small penalty for the tertiary reward.
 	 */
-	GridMDP(unsigned int seed, unsigned int gridSize, unsigned int numBlockedStates, double tertiaryPenalty);
+	GridLMDP(unsigned int seed, unsigned int gridSize, unsigned int numBlockedStates,
+			double tertiaryPenalty);
 
 	/**
-	 * The default deconstructor of the LOSMState class.
+	 * The default deconstructor of the GridLMDP class.
 	 */
-	virtual ~GridMDP();
+	virtual ~GridLMDP();
+
+	/**
+	 * Set the delta values.
+	 * @param	d1	The first delta.
+	 * @param	d2	The second delta.
+	 * @param	d3	The third delta.
+	 */
+	void set_slack(float d1, float d2, float d3);
+
+	/**
+	 * Define a 1-partition with the ordering (1, 2, 3) for all states.
+	 */
+	void set_default_conditional_preference();
+
+	/**
+	 * Define a 2-partition with the ordering (1, 2, 3) for all northern states,
+	 * and the ordering (1, 3, 2) for all southern states.
+	 */
+	void set_split_conditional_preference();
 
 	/**
 	 * Given a policy map, this outputs the pretty picture of the grid world and the policy.
@@ -62,27 +83,27 @@ public:
 
 private:
 	/**
-	 * Create the MDP's states.
+	 * Create the LMDP's states.
 	 */
 	void create_states();
 
 	/**
-	 * Create the MDP's actions.
+	 * Create the LMDP's actions.
 	 */
 	void create_actions();
 
 	/**
-	 * Create the MDP's state transitions.
+	 * Create the LMDP's state transitions.
 	 */
 	void create_state_transitions();
 
 	/**
-	 * Create the MDP's rewards.
+	 * Create the LMDP's rewards.
 	 */
 	void create_rewards();
 
 	/**
-	 * Create the MDP's initial and horizon objects.
+	 * Create the LMDP's initial and horizon objects.
 	 */
 	void create_misc();
 
@@ -104,4 +125,4 @@ private:
 };
 
 
-#endif // GRID_MDP_H
+#endif // GRID_LMDP_H

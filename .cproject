@@ -63,7 +63,7 @@
 								<option id="gnu.both.asm.option.include.paths.258089217" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}../nova/nova/BuildLibrary&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../nova/nova/BuildLibrary&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.538051139" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
