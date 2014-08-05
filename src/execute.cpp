@@ -41,50 +41,6 @@
 #include <iostream>
 #include <unordered_map>
 
-PolicyMap *convert_policy(const PolicyMap *policy, const MDP *src, const MDP *dest)
-{
-	const StatesMap *srcS = dynamic_cast<const StatesMap *>(src->get_states());
-	const ActionsMap *srcA = dynamic_cast<const ActionsMap *>(src->get_actions());
-
-	const StatesMap *destS = dynamic_cast<const StatesMap *>(dest->get_states());
-	const ActionsMap *destA = dynamic_cast<const ActionsMap *>(dest->get_actions());
-
-	if (srcS == nullptr || srcA == nullptr || destS == nullptr || destA == nullptr) {
-		throw CoreException();
-	}
-
-	// Maps src to dest.
-	std::unordered_map<const Action *, const Action *> actionsMap;
-
-	// First figure out the mapping of actions: src to dest.
-	int i = 0;
-
-	for (auto action : *destA) {
-		const Action *destAction = resolve(action);
-		const Action *srcAction = srcA->get(i);
-
-		actionsMap[srcAction] = destAction;
-
-		i++;
-	}
-
-	// Now, iterate over all the states. For each one, we will redefine the policy provided.
-	PolicyMap *p = new PolicyMap();
-
-	i = 0;
-
-	for (auto state : *destS) {
-		const State *destState = resolve(state);
-		const State *srcState = srcS->get(i);
-
-		p->set(destState, actionsMap[policy->get(srcState)]);
-
-		i++;
-	}
-
-	return p;
-}
-
 int main(int argc, char *argv[]) {
 	/* LOSM MDP Version.
 
@@ -114,13 +70,14 @@ int main(int argc, char *argv[]) {
 
 	RawFile rawFile;
 
-	GridLMDP *gridLMDP = new GridLMDP(0, 5, 0, -0.03);
+	GridLMDP *gridLMDP = new GridLMDP(0, 8, 0, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 8, 10, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
 	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
 	gridLMDP->set_default_conditional_preference();
+
 
 	LVMaxValueIteration solver(0.0001);
 
@@ -129,7 +86,7 @@ int main(int argc, char *argv[]) {
 	delta.push_back(0.0f);
 	delta.push_back(0.0f);
 
-	PolicyMap *policy = solver.solve(gridLMDP, delta, false);
+	PolicyMap *policy = solver.solve(gridLMDP, delta, true);
 
 	gridLMDP->print(policy);
 

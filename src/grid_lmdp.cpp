@@ -198,16 +198,15 @@ void GridLMDP::create_states()
 	IndexedState::reset_indexer();
 
 	for (int c = 0; c < 2; c++) {
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
 //            	std::string name = std::to_string(x) + " " + std::to_string(y) + " " + std::to_string(c);
 //                unsigned int current = NamedState::hash_value(name);
 
-            	unsigned int current = IndexedState::get_num_states();
-
-                if (std::find(blocked.begin(), blocked.end(), current) == blocked.end()) {
+//            	unsigned int current = IndexedState::get_num_states();
+//                if (std::find(blocked.begin(), blocked.end(), current) == blocked.end()) {
                     ((StatesMap *)states)->add(new IndexedState());
-                }
+//                }
             }
         }
 	}
@@ -236,8 +235,8 @@ void GridLMDP::create_state_transitions()
 
 	// Loop over all starting states.
 	for (int c = 0; c < 2; c++) {
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
+		for (int y = 0; y < size; y++) {
+			for (int x = 0; x < size; x++) {
                 // Create the hash values for the four directions.
                 unsigned int current = c * size * size + y * size + x;
                 unsigned int north = c * size * size + (y - 1) * size + x;
@@ -252,11 +251,16 @@ void GridLMDP::create_state_transitions()
 
                 // Only do all the work below if this is not one of the two absorbing state corners (top and bottom right).
                 if ((x == size - 1 && y == 0) || (x == size - 1 && y == size - 1)) {
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        nullptr,
-                        ((StatesMap *)states)->get(current),
-                        1.0);
+                	for (auto action : *((ActionsMap *)actions)) {
+                		const Action *a = resolve(action);
+
+						((StateTransitionsArray *)stateTransitions)->set(
+							((StatesMap *)states)->get(current),
+							a,
+							((StatesMap *)states)->get(current),
+							1.0);
+                	}
+
                     continue;
                 }
 
@@ -272,7 +276,6 @@ void GridLMDP::create_state_transitions()
                         ((ActionsMap *)actions)->get(actionNorth),
                         ((StatesMap *)states)->get(currentNoCookie),
                         0.8);
-
                     ((StateTransitionsArray *)stateTransitions)->set(
                         ((StatesMap *)states)->get(current),
                         ((ActionsMap *)actions)->get(actionNorth),
@@ -298,7 +301,7 @@ void GridLMDP::create_state_transitions()
                     ((StateTransitionsArray *)stateTransitions)->set(
                         ((StatesMap *)states)->get(current),
                         ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                        ((StatesMap *)states)->get(northNoCookie),
                         0.1);
                     ((StateTransitionsArray *)stateTransitions)->set(
                         ((StatesMap *)states)->get(current),
@@ -530,12 +533,24 @@ void GridLMDP::create_rewards()
 	((FactoredRewards *)rewards)->add_factor(primary);
 
 	// Top right penalty.
-	primary->set(nullptr, nullptr,
-			((StatesMap *)states)->get(0 + 0 + (size - 1)),
-			-1.0);
-	primary->set(nullptr, nullptr,
-			((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-			-1.0);
+	for (auto state : *((StatesMap *)states)) {
+		const State *s = resolve(state);
+
+		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
+			continue;
+		}
+
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
+
+			primary->set(s, a,
+					((StatesMap *)states)->get(0 + 0 + (size - 1)),
+					-1.0);
+			primary->set(s, a,
+					((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
+					-1.0);
+		}
+	}
 
 	// Small penalty for travel. Not for the dead end, since it seems to want to avoid the dead end with all
 	// states, meaning that it only gives West and South as actions. Since there's both rewards to the south,
@@ -543,90 +558,147 @@ void GridLMDP::create_rewards()
 //	primary->set(nullptr, nullptr, nullptr, penalty);
 
 	// Zero for absorbing states.
-	primary->set(((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					0.0);
-	primary->set(((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					0.0);
-	primary->set(((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					0.0);
-	primary->set(((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					0.0);
+	/*
+	for (int c = 0; c < 2; c++) {
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
 
-	// Create the secondary reward in the bottom left corner, an absorbing state.
+			primary->set(((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							0.0);
+			primary->set(((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							0.0);
+		}
+	}
+	//*/
+
+	// Create the secondary reward in the bottom right corner, an absorbing state.
 	SASRewardsArray *secondary = new SASRewardsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
 	((FactoredRewards *)rewards)->add_factor(secondary);
 
-	// Bottom right reward.
-	secondary->set(nullptr, nullptr,
-			((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-			1.0);
-	secondary->set(nullptr, nullptr,
-			((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-			1.0);
-
 	// Small penalty for travel.
-	secondary->set(nullptr, nullptr, nullptr, penalty);
+	for (auto state : *((StatesMap *)states)) {
+		const State *s = resolve(state);
+
+		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
+			continue;
+		}
+
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
+
+			for (auto statePrime : *((StatesMap *)states)) {
+				const State *sp = resolve(statePrime);
+
+				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
+					continue;
+				}
+
+				secondary->set(s, a, sp, penalty);
+			}
+		}
+	}
+
+	// Bottom right reward.
+	for (int c = 0; c < 2; c++) {
+		for (auto state : *((StatesMap *)states)) {
+			const State *s = resolve(state);
+
+			if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
+				continue;
+			}
+
+			for (auto action : *((ActionsMap *)actions)) {
+				const Action *a = resolve(action);
+
+				secondary->set(s, a,
+						((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+						1.0);
+			}
+		}
+	}
 
 	// Zero for absorbing states.
-	secondary->set(((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					0.0);
-	secondary->set(((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					0.0);
-	secondary->set(((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					0.0);
-	secondary->set(((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					0.0);
+	for (int c = 0; c < 2; c++) {
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
 
-	//*
+			secondary->set(((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							0.0);
+			secondary->set(((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							0.0);
+		}
+	}
+
 	// Create the tertiary reward in the bottom left corner.
 	SASRewardsArray *tertiary = new SASRewardsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
 	((FactoredRewards *)rewards)->add_factor(tertiary);
 
-	// Bottom left reward.
-	tertiary->set(nullptr, nullptr,
-			((StatesMap *)states)->get(0 * (size - 1) * size + 0),
-			1.0);
-//	tertiary->set(nullptr, nullptr,
-//			((FiniteStates *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 1")),
-//			1.0); // Important, not 0.0 and not -1.0, it should be the default... which is set already below.
-
 	// Small penalty for travel.
-	tertiary->set(nullptr, nullptr, nullptr, penalty);
+	for (auto state : *((StatesMap *)states)) {
+		const State *s = resolve(state);
+
+		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
+			continue;
+		}
+
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
+
+			for (auto statePrime : *((StatesMap *)states)) {
+				const State *sp = resolve(statePrime);
+
+				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
+					continue;
+				}
+
+				tertiary->set(s, a, sp, penalty);
+			}
+		}
+	}
+
+	// Bottom left reward.
+	for (auto state : *((StatesMap *)states)) {
+		const State *s = resolve(state);
+
+		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
+			continue;
+		}
+
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
+
+			tertiary->set(s, a,
+					((StatesMap *)states)->get(0 + (size - 1) * size + 0),
+					1.0);
+//			tertiary->set(nullptr, nullptr,
+//					((FiniteStates *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 1")),
+//					1.0); // Important, not 0.0 and not -1.0, it should be the default... which is set already below.
+		}
+	}
 
 	// Zero for absorbing states.
-	tertiary->set(((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + (size - 1) * size + (size - 1)),
-					0.0);
-	tertiary->set(((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(0 + 0 + (size - 1)),
-					0.0);
-	tertiary->set(((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + (size - 1) * size + (size - 1)),
-					0.0);
-	tertiary->set(((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					nullptr,
-					((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
-					0.0);
-	//*/
+	for (int c = 0; c < 2; c++) {
+		for (auto action : *((ActionsMap*)actions)) {
+			const Action *a = resolve(action);
+
+			tertiary->set(((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							0.0);
+			tertiary->set(((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							a,
+							((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							0.0);
+		}
+	}
 }
 
 void GridLMDP::create_misc()
@@ -635,5 +707,5 @@ void GridLMDP::create_misc()
 	initialState = new Initial(((StatesMap *)states)->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(0.9);
+	horizon = new Horizon(0.99);
 }

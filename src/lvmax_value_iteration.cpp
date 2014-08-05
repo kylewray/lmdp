@@ -554,10 +554,11 @@ void LVMaxValueIteration::compute_A_delta(const StatesMap *S, const std::vector<
 	for (int i = 0; i < Ai.size(); i++) {
 		// Check if this is difference within eta_i, but account for machine precision issues
 		// within 1 order of magnitude.
-		if (maxQisa - Qis[i] < etai + std::numeric_limits<double>::epsilon() * 10.0) {
+		if (maxQisa - Qis[i] <= etai + std::numeric_limits<double>::epsilon() * 10.0) {
 			AiPlus1.push_back(Ai[i]);
 		}
 	}
+	std::cout << "A_{i+1} = " << AiPlus1.size() << std::endl; std::cout.flush();
 }
 
 void LVMaxValueIteration::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
