@@ -54,7 +54,7 @@ public:
 	 */
 	LMDP(States *S, Actions *A, StateTransitions *T, FactoredRewards *R, Initial *s, Horizon *h,
 			std::vector<float> *d, std::vector<std::vector<const State *> > *P,
-			std::vector<std::vector<const Rewards *> > *o);
+			std::vector<std::vector<unsigned int> > *o);
 
 	/**
 	 * The default deconstructor for the LDMP class.
@@ -83,7 +83,7 @@ public:
 	 * Get the orderings for each partition.
 	 * @return	The orderings for each partition.
 	 */
-	const std::vector<std::vector<const Rewards *> > *get_orderings() const;
+	const std::vector<std::vector<unsigned int> > *get_orderings() const;
 
 protected:
 	/**
@@ -100,7 +100,7 @@ protected:
 	 * The z-array of orderings over each of the k rewards. This is a parallel
 	 * vector to partition.
 	 */
-	std::vector<std::vector<const Rewards *> > ordering;
+	std::vector<std::vector<unsigned int> > ordering;
 
 };
 

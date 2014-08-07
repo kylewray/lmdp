@@ -82,10 +82,10 @@ void GridLMDP::set_default_conditional_preference()
 	partition.clear();
 	partition.push_back(p);
 
-	std::vector<const Rewards *> r;
-	r.push_back(((FactoredRewards *)rewards)->get(0));
-	r.push_back(((FactoredRewards *)rewards)->get(1));
-	r.push_back(((FactoredRewards *)rewards)->get(2));
+	std::vector<unsigned int> r;
+	r.push_back(0);
+	r.push_back(1);
+	r.push_back(2);
 
 	ordering.clear();
 	ordering.push_back(r);
@@ -99,7 +99,7 @@ void GridLMDP::set_split_conditional_preference()
 	for (int c = 0; c < 2; c++) {
 		for (int y = 0; y < size; y++) {
 			for (int x = 0; x < size; x++) {
-				if (y < size / 2) {
+				if (x < size / 2) {
 					p1.push_back(((StatesMap *)states)->get(c * size * size + y * size + x));
 				} else {
 					p2.push_back(((StatesMap *)states)->get(c * size * size + y * size + x));
@@ -112,21 +112,19 @@ void GridLMDP::set_split_conditional_preference()
 	partition.push_back(p1);
 	partition.push_back(p2);
 
+	std::vector<unsigned int> r1;
+	r1.push_back(0);
+	r1.push_back(2);
+	r1.push_back(1);
+
+	std::vector<unsigned int> r2;
+	r2.push_back(0);
+	r2.push_back(1);
+	r2.push_back(2);
+
 	ordering.clear();
-	std::vector<const Rewards *> r;
-
-	r.push_back(((FactoredRewards *)rewards)->get(0));
-	r.push_back(((FactoredRewards *)rewards)->get(1));
-	r.push_back(((FactoredRewards *)rewards)->get(2));
-
-	ordering.push_back(r);
-
-	r.clear();
-	r.push_back(((FactoredRewards *)rewards)->get(0));
-	r.push_back(((FactoredRewards *)rewards)->get(2));
-	r.push_back(((FactoredRewards *)rewards)->get(1));
-
-	ordering.push_back(r);
+	ordering.push_back(r1);
+	ordering.push_back(r2);
 }
 
 
@@ -707,5 +705,5 @@ void GridLMDP::create_misc()
 	initialState = new Initial(((StatesMap *)states)->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(0.99);
+	horizon = new Horizon(0.9);
 }

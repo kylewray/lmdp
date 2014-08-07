@@ -25,7 +25,8 @@
 #include "../include/losm_mdp.h"
 #include "../include/grid_lmdp.h"
 
-#include "../include/lvmax_value_iteration.h"
+#include "../include/lvi.h"
+#include "../include/lvi_nova.h"
 
 #include "../../losm/losm/include/losm_exception.h"
 
@@ -70,25 +71,28 @@ int main(int argc, char *argv[]) {
 
 	RawFile rawFile;
 
-	GridLMDP *gridLMDP = new GridLMDP(0, 8, 0, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(0, 5, 0, -0.03);
+	GridLMDP *gridLMDP = new GridLMDP(0, 10, 0, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 8, 10, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(3, 15, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
 	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
-	gridLMDP->set_default_conditional_preference();
+//	gridLMDP->set_default_conditional_preference();
+	gridLMDP->set_split_conditional_preference();
 
+	PolicyMap *policy = nullptr;
 
-	LVMaxValueIteration solver(0.0001);
-
-	std::vector<double> delta;
-	delta.push_back(0.0f);
-	delta.push_back(0.0f);
-	delta.push_back(0.0f);
-
-	PolicyMap *policy = solver.solve(gridLMDP, delta, true);
-
+	LVI solver(0.0001);
+	policy = solver.solve(gridLMDP);
 	gridLMDP->print(policy);
+
+//	delete policy;
+
+//	LVINova novaSolver(0.0001);
+//	policy = novaSolver.solve(gridLMDP);
+//	gridLMDP->print(policy);
 
 	delete policy;
 	delete gridLMDP;

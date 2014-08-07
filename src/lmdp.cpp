@@ -29,7 +29,7 @@ LMDP::LMDP()
 
 LMDP::LMDP(States *S, Actions *A, StateTransitions *T, FactoredRewards *R, Initial *s, Horizon *h,
 		std::vector<float> *d, std::vector<std::vector<const State *> > *P,
-		std::vector<std::vector<const Rewards *> > *o) : MDP(S, A, T, R, s, h)
+		std::vector<std::vector<unsigned int> > *o) : MDP(S, A, T, R, s, h)
 {
 	for (float val : *d) {
 		delta.push_back(val);
@@ -39,7 +39,7 @@ LMDP::LMDP(States *S, Actions *A, StateTransitions *T, FactoredRewards *R, Initi
 		partition.push_back(p);
 	}
 
-	for (std::vector<const Rewards *> r : *o) {
+	for (std::vector<unsigned int> r : *o) {
 		ordering.push_back(r);
 	}
 }
@@ -66,7 +66,7 @@ const std::vector<std::vector<const State *> > *LMDP::get_partitions() const
 	return &partition;
 }
 
-const std::vector<std::vector<const Rewards *> > *LMDP::get_orderings() const
+const std::vector<std::vector<unsigned int> > *LMDP::get_orderings() const
 {
 	return &ordering;
 }
