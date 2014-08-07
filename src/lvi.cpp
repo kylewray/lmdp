@@ -164,17 +164,19 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 
 		difference = 0.0;
 
+		std::cout << "Iterating";
+
 		// For each of the partitions, run value iteration. Each time, copy the resulting value functions.
 		for (int j = 0; j < P.size(); j++) {
-			std::cout << "Partition " << j << std::endl; std::cout.flush();
+			std::cout << "."; std::cout.flush();
 
 			compute_partition(S, A, T, R, s0, h, delta, P[j], o[j], VStar, V, policy, difference);
 		}
 
-		std::cout << "Max difference = " << difference << std::endl; std::cout.flush();
+		std::cout << " Complete with Error: " << difference << std::endl; std::cout.flush();
 	}
 
-	std::cout << "Complete." << std::endl; std::cout.flush();
+	std::cout << "Complete LVI." << std::endl; std::cout.flush();
 
 	return policy;
 }
@@ -207,7 +209,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 
 	// For each of the value functions, we will compute the actions set.
 	for (int i = 0; i < R->get_num_rewards(); i++) {
-		std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
+//		std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
 
 		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(oj[i]));
 
@@ -226,7 +228,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		double difference = convergenceCriterion + 1.0;
 
 		// For this V_i, converge until you reach within epsilon of V_i^*.
-		while (difference > convergenceCriterion) {
+//		while (difference > convergenceCriterion) {
 //			std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
 
 			difference = 0.0;
@@ -258,7 +260,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			for (auto s : Pj) {
 				V[oj[i]][s] = Vi[s];
 			}
-		}
+//		}
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
 		if (i != R->get_num_rewards() - 1) {
@@ -267,8 +269,20 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 				compute_A_delta(S, AStar[oj[i]][s], T, Ri, h, s, V[oj[i]], delta[oj[i]], AStar[oj[i + 1]][s]);
 			}
 		}
+
+		// Copy the final results for these states.
+		for (auto s : Pj) {
+			// Also, update the maximum difference found over all partitions after the subset
+			// of states have had VI executed.
+			if (fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s)) > maxDifference) {
+				maxDifference = fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s));
+			}
+
+			VResult[oj[i]][s] = V[oj[i]][s];
+		}
 	}
 
+	/*
 	std::cout << "Completed policy for partition. Now computing actual V." << std::endl; std::cout.flush();
 
 	// At the very end, compute the final values of V following the policy.
@@ -306,20 +320,10 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 				V[oj[i]][s] = Vis;
 			}
 		}
-
-		// Copy the final results for these states.
-		for (auto s : Pj) {
-			// Also, update the maximum difference found over all partitions after the subset
-			// of states have had VI executed.
-			if (fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s)) > maxDifference) {
-				maxDifference = fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s));
-			}
-
-			VResult[oj[i]][s] = V[oj[i]][s];
-		}
 	}
+	*/
 
-	std::cout << "Completed partition." << std::endl; std::cout.flush();
+//	std::cout << "Completed partition." << std::endl; std::cout.flush();
 }
 
 void LVI::compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
@@ -359,7 +363,7 @@ void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> 
 	for (int i = 0; i < Ai.size(); i++) {
 		// Check if this is difference within eta_i, but account for machine precision issues
 		// within 1 order of magnitude.
-		if (maxQisa - Qis[i] <= etai + std::numeric_limits<double>::epsilon() * 10.0) {
+		if (maxQisa - Qis[i] < etai + std::numeric_limits<double>::epsilon() * 10.0) {
 			AiPlus1.push_back(Ai[i]);
 		}
 	}
