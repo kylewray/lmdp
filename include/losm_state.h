@@ -26,22 +26,31 @@
 #define LOSM_STATE_H
 
 
-#include "../../librbr/librbr/include/core/states/state.h"
+#include "../../librbr/librbr/include/core/states/indexed_state.h"
 
 #include "../../losm/losm/include/losm_node.h"
 
-class LOSMState : public State {
+#define NUM_TIREDNESS_LEVELS 3
+
+/**
+ * A custom LSOM state class which holds the two LOSM nodes (in order) and other relevant information.
+ */
+class LOSMState : public IndexedState {
 public:
 	/**
 	 * The default constructor of the LOSMState object.
-	 * @param	other	A LOSM node to copy.
-	 * @param	dir		The direction the agent is facing (with or against the edge ordering).
+	 * @param	currentNode			The current LOSM node in which a decision must be made (an intersection).
+	 * @param	previousNode		The previous LOSM node from which the agent originated (an intersection).
+	 * @param	tirednessLevel		The level of tiredness from 0 to MAX_TIREDNESS - 1.
+	 * @param	travelDistance		The distance (mi) from the current to previous nodes.
+	 * @param	travelTime			The time (h) from the current to previous nodes.
 	 */
-	LOSMState(const LOSMNode *other, bool dir);
+	LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
+			float travelDistance, float travelTime);
 
 	/**
 	 * The copy constructor of the LOSMState object.
-	 * @param	other		The state to copy.
+	 * @param	other	The state to copy.
 	 */
 	LOSMState(const LOSMState &other);
 
@@ -51,8 +60,38 @@ public:
 	virtual ~LOSMState();
 
 	/**
+	 * Get the current LOSMNode.
+	 * @return	The current LOSMNode.
+	 */
+	const LOSMNode *get_current() const;
+
+	/**
+	 * Get the previous LOSMNode.
+	 * @return	The previous LOSMNode.
+	 */
+	const LOSMNode *get_previous() const;
+
+	/**
+	 * Get the level of tiredness.
+	 * @return	The level of tiredness.
+	 */
+	unsigned int get_tiredness() const;
+
+	/**
+	 * Get the distance traveled.
+	 * @return	The distance traveled.
+	 */
+	float get_distance() const;
+
+	/**
+	 * Get the time traveled.
+	 * @return	The time traveled.
+	 */
+	float get_time() const;
+
+	/**
 	 * Overload the equals operator to set this state equal to the state provided.
-	 * @param	other		The state to copy.
+	 * @param	other	The state to copy.
 	 * @return	The new version of this state.
 	 */
 	virtual State &operator=(const State &other);
@@ -71,16 +110,30 @@ public:
 
 private:
 	/**
-	 * The LOSM node corresponding to this state.
+	 * The current LOSM node in which a decision must be made (an intersection).
 	 */
-	LOSMNode *node;
+	LOSMNode *current;
 
 	/**
-	 * The direction the agent is facing. This is true if the agent is following the order in which
-	 * edges are defined. It is false if the agent is following the opposite order. At intersections,
-	 * the agent may ignore this and turn any way it wants.
+	 * The previous LOSM node from which the agent originated.
 	 */
-	bool direction;
+	LOSMNode *previous;
+
+	/**
+	 * The tiredness level from 0 to MAX_TIREDNESS - 1.
+	 */
+	unsigned int tiredness;
+
+	/**
+	 * The distance from the current node to the previous node in miles.
+	 */
+	float distance;
+
+	/**
+	 * The time from the current node to the previous node in hours, assuming the car travels
+	 * at the speed limits along the way.
+	 */
+	float time;
 
 };
 

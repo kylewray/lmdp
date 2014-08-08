@@ -43,7 +43,7 @@
 #include <unordered_map>
 
 int main(int argc, char *argv[]) {
-	/* LOSM MDP Version.
+	//* LOSM MDP Version.
 
 	if (argc != 4) {
 		std::cerr << "Please specify nodes, edges, and landmarks data files." << std::endl;
@@ -57,9 +57,6 @@ int main(int argc, char *argv[]) {
 		std::cerr << "Failed to load the files provided." << std::endl;
 		return -1;
 	}
-
-	LVMaxMDPSolver solver;
-	// TODO: Finish solver...
 
 	delete losmMDP;
 
@@ -79,8 +76,8 @@ int main(int argc, char *argv[]) {
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
 	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
-//	gridLMDP->set_default_conditional_preference();
-	gridLMDP->set_split_conditional_preference();
+	gridLMDP->set_default_conditional_preference();
+//	gridLMDP->set_split_conditional_preference();
 
 	PolicyMap *policy = nullptr;
 

@@ -42,7 +42,7 @@
 
 #include "../../librbr/librbr/include/core/actions/action_utilities.h"
 
-#include <iostream> // NOTE: REMOVE ME AT SOME POINT!
+#include <iostream> // TODO: Remove this after debug statements have been removed.
 
 #include <math.h>
 #include <vector>

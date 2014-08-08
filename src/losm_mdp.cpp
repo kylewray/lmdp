@@ -27,24 +27,28 @@
 
 #include "../../librbr/librbr/include/core/states/states_map.h"
 #include "../../librbr/librbr/include/core/actions/actions_map.h"
-#include "../../librbr/librbr/include/core/state_transitions/state_transitions_map.h"
+#include "../../librbr/librbr/include/core/state_transitions/state_transitions_array.h"
 #include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
-#include "../../librbr/librbr/include/core/rewards/sas_rewards_map.h"
+#include "../../librbr/librbr/include/core/rewards/sas_rewards_array.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
 
-#include "../../librbr/librbr/include/core/actions/named_action.h"
+#include "../../librbr/librbr/include/core/actions/indexed_action.h"
 
 #include "../../librbr/librbr/include/core/states/state_exception.h"
 
 #include "../../losm/losm/include/losm_exception.h"
 
+#include <iostream> // TODO: Remove me after debug is complete.
 #include <cmath>
+#include <set>
+#include <algorithm>
 
 LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename)
 {
 	LOSM *losm = new LOSM(nodesFilename, edgesFilename, landmarksFilename);
 
+	create_edges_hash(losm);
 	create_states(losm);
 	create_actions(losm);
 	create_state_transitions(losm);
@@ -57,190 +61,168 @@ LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::stri
 LOSMMDP::~LOSMMDP()
 { }
 
+void LOSMMDP::create_edges_hash(LOSM *losm)
+{
+	for (const LOSMEdge *edge : losm->get_edges()) {
+		edgeHash[edge->get_node_1()->get_uid()][edge->get_node_2()->get_uid()] = edge;
+	}
+	std::cout << "Done Create Edges Hash!" << std::endl; std::cout.flush();
+}
+
 void LOSMMDP::create_states(LOSM *losm)
 {
+	LOSMState::reset_indexer();
+
 	states = new StatesMap();
 
-	// Create the set of states from the LOSM object's nodes.
-	for (const LOSMNode *node : losm->get_nodes()) {
-		LOSMState *state = new LOSMState(node, false);
-		((StatesMap *)states)->add(state);
+	// Create the set of states from the LOSM object's edges, making states for
+	// both directions, as well as a tiredness level.
+	for (const LOSMEdge *edge : losm->get_edges()) {
+		const LOSMNode *n1 = edge->get_node_1();
+		const LOSMNode *n2 = edge->get_node_2();
 
-		state = new LOSMState(node, true);
-		((StatesMap *)states)->add(state);
+		float distance = 0.0f;
+		float time = 0.0f;
+
+		// Check if one of these is an intersection.
+		if (n1->get_degree() != 2) {
+			n2 = map_directed_path(losm, n2, n1, distance, time);
+		} else if (n2->get_degree() != 2) {
+			n1 = map_directed_path(losm, n1, n2, distance, time);
+		} else {
+			continue;
+		}
+
+		// If the code made it here, then n1 and n2 are two intersections,
+		// and 'distance' and 'time' store the respective distance and time.
+		// Now, create the actual pair of LOSMStates.
+		for (int i = 0; i < NUM_TIREDNESS_LEVELS; i++) {
+			((StatesMap *)states)->add(new LOSMState(n1, n2, i, distance, time));
+			((StatesMap *)states)->add(new LOSMState(n2, n1, i, distance, time));
+		}
 	}
+
+	std::cout << "Done States!" << std::endl; std::cout.flush();
 }
 
 void LOSMMDP::create_actions(LOSM *losm)
 {
-	forward = new NamedAction("Forward");
-	right = new NamedAction("Right");
-	left = new NamedAction("Left");
-	uTurn = new NamedAction("U-Turn");
+	// Compute the maximum degree in the graph.
+	int maxDegree = 0;
+	for (const LOSMNode *node : losm->get_nodes()) {
+		if ((int)node->get_degree() > maxDegree) {
+			maxDegree = node->get_degree();
+		}
+	}
 
+	IndexedAction::reset_indexer();
+
+	// Create a number of indexed actions equal to the max degree.
 	actions = new ActionsMap();
-	((ActionsMap *)actions)->add(forward);
-	((ActionsMap *)actions)->add(right);
-	((ActionsMap *)actions)->add(left);
-	((ActionsMap *)actions)->add(uTurn);
+	for (int i = 0; i < maxDegree; i++) {
+		((ActionsMap *)actions)->add(new IndexedAction());
+	}
+
+	std::cout << "Done Actions!" << std::endl; std::cout.flush();
 }
 
 void LOSMMDP::create_state_transitions(LOSM *losm)
 {
-	// Use a temporary variable to find the forward action.
-	const Action *findAction = new NamedAction("Forward");
-	const Action *forward = ((ActionsMap *)actions)->get(findAction->hash_value());
-	delete findAction;
+	stateTransitions = new StateTransitionsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
 
-	// Use a temporary variable to find the left action.
-	findAction = new NamedAction("Left");
-	const Action *left = ((ActionsMap *)actions)->get(findAction->hash_value());
-	delete findAction;
+	for (auto state : *((StatesMap *)states)) {
+		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+		int currentAction = 0;
 
-	// Use a temporary variable to find the right action.
-	findAction = new NamedAction("Right");
-	const Action *right = ((ActionsMap *)actions)->get(findAction->hash_value());
-	delete findAction;
+		// With this LOSMState, we have two nodes in the original LOSM graph. These nodes had LOSM edges to
+		// chains of other LOSMNodes, eventually reaching a terminal node (intersection or dead-end). Moving
+		// from 'previous' to 'current', means that we need to find the other LOSMState objects which have
+		// 'current' in *their* 'previous'.
+		for (auto statePrime : *((StatesMap *)states)) {
+			const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
+			if (s->get_current() == sp->get_previous()) {
+				// Handle probability differently based on if this is the maximal level of tiredness.
+				if (s->get_tiredness() == NUM_TIREDNESS_LEVELS - 1) {
+					// This is the same (max) level, so it is 1.0 probability.
+					if (s->get_tiredness() == sp->get_tiredness()) {
+						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+						currentAction++;
 
-	// Use a temporary variable to find the right action.
-	findAction = new NamedAction("U-Turn");
-	const Action *uTurn = ((ActionsMap *)actions)->get(findAction->hash_value());
-	delete findAction;
+						stateTransitions->set(s, a, sp, 1.0);
+						successors[s][a] = sp;
+					}
+				} else {
+					// The same level has a probability of 0.9. The next level has a probability of 0.1.
+					if (s->get_tiredness() == sp->get_tiredness()) {
+						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+						currentAction++;
 
-	for (const LOSMEdge *edge : losm->get_edges()) {
-		// Get the two nodes.
-		const LOSMNode *n1 = edge->get_node_1();
-		const LOSMNode *n2 = edge->get_node_2();
+						stateTransitions->set(s, a, sp, 0.9);
+						successors[s][a] = sp;
+					} else if (s->get_tiredness() + 1 == sp->get_tiredness()) {
+						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+						currentAction++;
 
-		// Use a temporary variable to find the first state.
-		const LOSMState *findState = new LOSMState(n1, false);
-		const State *s1 = ((StatesMap *)states)->get(findState->hash_value());
-		delete findState;
-
-		// Use a temporary variable to find the first state in the opposite direction.
-		findState = new LOSMState(n1, true);
-		const State *s1r = ((StatesMap *)states)->get(findState->hash_value());
-		delete findState;
-
-		// Use a temporary variable to find the second state.
-		findState = new LOSMState(n2, false);
-		const State *s2 = ((StatesMap *)states)->get(findState->hash_value());
-		delete findState;
-
-		// Use a temporary variable to find the second state in the opposite direction.
-		findState = new LOSMState(n2, true);
-		const State *s2r = ((StatesMap *)states)->get(findState->hash_value());
-		delete findState;
-
-		// Compute the base probability of getting stuck at a node.
-		double stuck = FRICTION * (edge->get_distance() / D_0) *
-				(L_0 / edge->get_lanes()) * (S_0 / edge->get_speed_limit());
-
-		// Now that we have all four states, we need to first link them such that the direction
-		// is preserved when taking each action given node 2 has degree 2, 3, or 4.
-		if (n2->get_degree() == 2) {
-			((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, stuck);
-			((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - stuck);
-		} else if (n2->get_degree() == 3) {
-			// Get the list of neighbors.
-			std::vector<const LOSMNode *> neighbors;
-			losm->get_neighbors(n2, neighbors);
-
-			// Figure out which one n1 is.
-			int n3Index = 0;
-			if (n1 == neighbors[0]) {
-				n3Index = 1;
+						stateTransitions->set(s, a, sp, 0.1);
+						successors[s][a] = sp;
+					}
+				}
 			}
-
-			// NOTE: THIS MAY BE COMPLETELY WRONG WITH THE WHOLE n2 and s1 thing going on here...
-
-			// Check if n1 is on the left. If it is, it means it is more likely you'll get stuck here.
-			if (check_left(n2, neighbors[n3Index], n1)) {
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 2.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s2, 1.0 - 3.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
-			} else {
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - 3.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
-			}
-		} else if (n2->get_degree() == 4) {
-			// Get the list of neighbors.
-			std::vector<const LOSMNode *> neighbors;
-			losm->get_neighbors(n2, neighbors);
-
-			// Figure out which one n1 is.
-			int n3Index = 0;
-			int n4Index = 1;
-			if (n1 == neighbors[0]) {
-				n3Index = 1;
-				n4Index = 2;
-			} else if (n1 == neighbors[1]){
-				n4Index = 2;
-			}
-
-			// Check if n1 is on the left, center, or right. Based on this, it goes from more likely
-			// to get stuck, to less likely to get stuck.
-			bool leftOfN3 = check_left(n2, neighbors[n3Index], n1);
-			bool leftOfN4 = check_left(n2, neighbors[n4Index], n1);
-			if (leftOfN3 && leftOfN4) {
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 3.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s2, 1.0 - 6.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
-			} else if ((leftOfN3 && !leftOfN4) || (!leftOfN3 && leftOfN4)) {
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 2.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s2, 1.0 - 6.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
-			} else {
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s1, stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, right, s2, 1.0 - 6.0 * stuck);
-				((StateTransitionsMap *)stateTransitions)->set(s1, left, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, forward, s1, 1.0);
-				((StateTransitionsMap *)stateTransitions)->set(s1, uTurn, s1, 1.0);
-			}
-		}
-
-		// Now that we have all four states, we need to first link them such that the direction
-		// is preserved when taking each action given node 1 has degree 2, 3, or 4.
-		if (n1->get_degree() == 2) {
-			((StateTransitionsMap *)stateTransitions)->set(s1r, forward, s1r, stuck);
-			((StateTransitionsMap *)stateTransitions)->set(s1r, forward, s2r, 1.0 - stuck);
-		} else if (n1->get_degree() == 3) {
-
-		} else if (n1->get_degree() == 4) {
-
 		}
 	}
+
+	std::cout << "Done State Transitions!" << std::endl; std::cout.flush();
 }
 
 void LOSMMDP::create_rewards(LOSM *losm)
 {
+	// TODO: Start here.
 
+	std::cout << "Done Rewards!" << std::endl; std::cout.flush();
 }
 
 void LOSMMDP::create_misc(LOSM *losm)
 {
+	// The initial state is arbitrary.
+	initialState = new Initial(((StatesMap *)states)->get(0));
 
+	// Infinite horizon with a discount factor of 0.9.
+	horizon = new Horizon(0.9);
+
+	std::cout << "Done Misc!" << std::endl; std::cout.flush();
 }
 
-bool LOSMMDP::check_left(const LOSMNode *n1, const LOSMNode *n2, const LOSMNode *n3)
+const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+		float &distance, float &time)
 {
-	return (n2->get_x() - n1->get_x()) * (n3->get_y() - n1->get_y()) -
-			(n2->get_y() - n1->get_y()) * (n3->get_x() - n1->get_x()) > 0;
-}
+	// Once we have found an intersection, we can stop.
+	if (current->get_degree() != 2) {
+		return current;
+	}
 
-double LOSMMDP::distance(const LOSMNode *n1, const LOSMNode *n2, const LOSMNode *n3)
-{
-	double dx = n2->get_x() - n1->get_x();
-	double dy = n2->get_y() - n1->get_y();
-	return std::fabs(dy * n3->get_x() - dx * n3->get_y() - n1->get_x() * n2->get_y() + n1->get_y() * n2->get_x()) /
-			std::sqrt(dx * dx + dy * dy);
+	// Update the distance and time.
+	try {
+		const LOSMEdge *edge = edgeHash.at(current->get_uid()).at(previous->get_uid());
+		distance += edge->get_distance();
+		time += edge->get_distance() / (float)edge->get_speed_limit();
+	} catch (const std::out_of_range &err) {
+		const LOSMEdge *edge = edgeHash.at(previous->get_uid()).at(current->get_uid());
+		distance += edge->get_distance();
+		time += edge->get_distance() / (float)edge->get_speed_limit();
+	}
+
+	// Keep going by traversing the neighbor which is not 'previous'.
+	std::vector<const LOSMNode *> neighbors;
+	losm->get_neighbors(current, neighbors);
+
+	// If this actually has one neighbor, then it must be a dead end. (Degree is not fully correct on nodes.)
+	if (neighbors.size() == 1) {
+		return current;
+	}
+
+	if (neighbors[0] == previous) {
+		return map_directed_path(losm, neighbors[1], current, distance, time);
+	} else {
+		return map_directed_path(losm, neighbors[0], current, distance, time);
+	}
 }

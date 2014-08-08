@@ -34,10 +34,7 @@
 
 #include "losm_state.h"
 
-#define FRICTION 0.1
-#define D_0 3.0
-#define S_0 25.0
-#define L_0 2.0
+#include <unordered_map>
 
 /**
  * A Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences.
@@ -59,6 +56,12 @@ public:
 	virtual ~LOSMMDP();
 
 private:
+	/**
+	 * Create the helper hash function for edges.
+	 * @param	losm	The Light-OSM object.
+	 */
+	void create_edges_hash(LOSM *losm);
+
 	/**
 	 * Create the MDP's states from the LOSM object provided.
 	 * @param	losm	The Light-OSM object.
@@ -90,42 +93,26 @@ private:
 	void create_misc(LOSM *losm);
 
 	/**
-	 * Check if the point (n3) is left of the line formed by two points (n1 and n2).
-	 * @param	n1	The first point on the line.
-	 * @param	n2	The second point on the line.
-	 * @param	n3	The node to check.
-	 * @return	If the point is on the left of the line.
+	 * Map directed path on the graph to merge nodes between intersections.
+	 * @param	losm		The LOSM object.
+	 * @param	current		The current node.
+	 * @param	previous	The previous node.
+	 * @param	distance	The distance (mi) traveled so far.
+	 * @param	time		The time (h) traveled so far (distance (mi) divided by speed limit (mi / h)).
 	 */
-	bool check_left(const LOSMNode *n1, const LOSMNode *n2, const LOSMNode *n3);
+	const LOSMNode *map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+			float &distance, float &time);
 
 	/**
-	 * Compute the distance from the point (n3) to the line formed by two points (n1 and n2).
-	 * @param	n1	The first point on the line.
-	 * @param	n2	The second point on the line.
-	 * @param	n3	The node to check.
-	 * @return	The distance from the point to the line.
+	 * A helper hash which maps the combination of two LOSMNode pointers to an edge.
+	 * This is used to quickly reference the edges from the combination of LOSMNode UIDs.
 	 */
-	double distance(const LOSMNode *n1, const LOSMNode *n2, const LOSMNode *n3);
+	std::unordered_map<unsigned int, std::unordered_map<unsigned int, const LOSMEdge *> > edgeHash;
 
 	/**
-	 * The move forward action.
+	 * A map of successors from an action. Used to make use of the final policy, e.g., video.
 	 */
-	const Action *forward;
-
-	/**
-	 * The move forward action.
-	 */
-	const Action *right;
-
-	/**
-	 * The move forward action.
-	 */
-	const Action *left;
-
-	/**
-	 * The move forward action.
-	 */
-	const Action *uTurn;
+	std::unordered_map<const LOSMState *, std::unordered_map<const Action *, const LOSMState *> > successors;
 
 };
 

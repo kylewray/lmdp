@@ -28,10 +28,16 @@
 
 #include <iostream>
 
-LOSMState::LOSMState(const LOSMNode *other, bool dir)
+LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
+		float travelDistance, float travelTime)
 {
-	node = new LOSMNode(other->get_uid(), other->get_x(), other->get_y(), other->get_degree());
-	direction = dir;
+	current = new LOSMNode(currentNode->get_uid(),
+			currentNode->get_x(), currentNode->get_y(), currentNode->get_degree());
+	previous = new LOSMNode(previousNode->get_uid(),
+			previousNode->get_x(), previousNode->get_y(), previousNode->get_degree());
+	tiredness = tirednessLevel;
+	distance = travelDistance;
+	time = travelTime;
 }
 
 LOSMState::LOSMState(const LOSMState &other)
@@ -41,43 +47,108 @@ LOSMState::LOSMState(const LOSMState &other)
 
 LOSMState::~LOSMState()
 {
-	delete node;
+	delete current;
+	delete previous;
+}
+
+void LOSMState::add_successor(const Action *a, const LOSMState *sp)
+{
+	successors[a] = sp;
+}
+
+const LOSMNode *LOSMState::get_current() const
+{
+	return current;
+}
+
+const LOSMNode *LOSMState::get_previous() const
+{
+	return previous;
+}
+
+unsigned int LOSMState::get_tiredness() const
+{
+	return tiredness;
+}
+
+float LOSMState::get_distance() const
+{
+	return distance;
+}
+
+float LOSMState::get_time() const
+{
+	return time;
 }
 
 State &LOSMState::operator=(const State &other)
 {
-	const LOSMState *state = static_cast<const LOSMState *>(&other);
+	const LOSMState *state = dynamic_cast<const LOSMState *>(&other);
 	if (state == nullptr) {
 		std::cerr << "Failed to dynamically cast the other state to a LOSMState." << std::endl;
 		throw StateException();
 	}
 
-	delete node;
+	delete current;
+	delete previous;
 
-	node = new LOSMNode(state->node->get_uid(), state->node->get_x(), state->node->get_y(), state->node->get_degree());
-	direction = state->direction;
+	index = state->index;
+
+	current = new LOSMNode(state->current->get_uid(),
+			state->current->get_x(),
+			state->current->get_y(),
+			state->current->get_degree());
+	previous = new LOSMNode(state->previous->get_uid(),
+			state->previous->get_x(),
+			state->previous->get_y(),
+			state->previous->get_degree());
+	tiredness = state->tiredness;
+	distance = state->distance;
+	time = state->time;
 
 	return *this;
 }
 
 std::string LOSMState::to_string() const
 {
-	std::string result = "Node ";
-	result += node->get_uid();
+	std::string result = "Current Node ";
+	result += current->get_uid();
 	result += " has position (";
-	result += node->get_x();
+	result += current->get_x();
 	result += ", ";
-	result += node->get_y();
+	result += current->get_y();
 	result += ") with degree ";
-	result += node->get_degree();
+	result += current->get_degree();
+
+	result += "; Previous Node ";
+	result += previous->get_uid();
+	result += " has position (";
+	result += previous->get_x();
+	result += ", ";
+	result += previous->get_y();
+	result += ") with degree ";
+	result += previous->get_degree();
+
+	result += "; Tiredness of ";
+	result += tiredness;
+
+	result += "; Distance of ";
+	result += distance;
+
+	result += "; Time of ";
+	result += time;
+
 	result += ".";
+
 	return result;
 }
 
 unsigned int LOSMState::hash_value() const
 {
-	unsigned int hash = 7;
-	hash = 31 * hash + node->get_uid();
-	hash = 31 * hash + (int)direction;
-	return hash;
+//	unsigned int hash = 7;
+//	hash = 31 * hash + node->get_uid();
+//	hash = 31 * hash + (int)direction;
+//	return hash;
+
+	return index;
 }
