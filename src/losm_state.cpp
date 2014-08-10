@@ -29,15 +29,19 @@
 #include <iostream>
 
 LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-		float travelDistance, float travelTime)
+		float travelDistance, float travelSpeedLimit, bool isPrimaryGoal, bool isSecondaryGoal)
 {
-	current = new LOSMNode(currentNode->get_uid(),
-			currentNode->get_x(), currentNode->get_y(), currentNode->get_degree());
-	previous = new LOSMNode(previousNode->get_uid(),
-			previousNode->get_x(), previousNode->get_y(), previousNode->get_degree());
+	current = currentNode;
+	previous = previousNode;
+//	current = new LOSMNode(currentNode->get_uid(),
+//			currentNode->get_x(), currentNode->get_y(), currentNode->get_degree());
+//	previous = new LOSMNode(previousNode->get_uid(),
+//			previousNode->get_x(), previousNode->get_y(), previousNode->get_degree());
 	tiredness = tirednessLevel;
 	distance = travelDistance;
-	time = travelTime;
+	speedLimit = travelSpeedLimit;
+	primaryGoalState = isPrimaryGoal;
+	secondaryGoalState = isSecondaryGoal;
 }
 
 LOSMState::LOSMState(const LOSMState &other)
@@ -49,11 +53,6 @@ LOSMState::~LOSMState()
 {
 	delete current;
 	delete previous;
-}
-
-void LOSMState::add_successor(const Action *a, const LOSMState *sp)
-{
-	successors[a] = sp;
 }
 
 const LOSMNode *LOSMState::get_current() const
@@ -76,9 +75,19 @@ float LOSMState::get_distance() const
 	return distance;
 }
 
-float LOSMState::get_time() const
+float LOSMState::get_speed_limit() const
 {
-	return time;
+	return speedLimit;
+}
+
+bool LOSMState::is_primary_goal_state() const
+{
+	return primaryGoalState;
+}
+
+bool LOSMState::is_secondary_goal_state() const
+{
+	return secondaryGoalState;
 }
 
 State &LOSMState::operator=(const State &other)
@@ -104,7 +113,9 @@ State &LOSMState::operator=(const State &other)
 			state->previous->get_degree());
 	tiredness = state->tiredness;
 	distance = state->distance;
-	time = state->time;
+	speedLimit = state->speedLimit;
+	primaryGoalState = state->primaryGoalState;
+	secondaryGoalState = state->secondaryGoalState;
 
 	return *this;
 }
@@ -135,8 +146,16 @@ std::string LOSMState::to_string() const
 	result += "; Distance of ";
 	result += distance;
 
-	result += "; Time of ";
-	result += time;
+	result += "; Speed Limit of ";
+	result += speedLimit;
+
+	if (primaryGoalState) {
+		result += "; Primary Goal State";
+	}
+
+	if (secondaryGoalState) {
+		result += "; Secondary Goal State";
+	}
 
 	result += ".";
 

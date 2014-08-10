@@ -43,10 +43,12 @@ public:
 	 * @param	previousNode		The previous LOSM node from which the agent originated (an intersection).
 	 * @param	tirednessLevel		The level of tiredness from 0 to MAX_TIREDNESS - 1.
 	 * @param	travelDistance		The distance (mi) from the current to previous nodes.
-	 * @param	travelTime			The time (h) from the current to previous nodes.
+	 * @param	travelSpeedLimit	The time (h) from the current to previous nodes.
+	 * @param	isPrimaryGoal		If this is a primary goal state or not.
+	 * @param	isSecondaryGoal		If this is a secondary goal state or not.
 	 */
 	LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-			float travelDistance, float travelTime);
+			float travelDistance, float travelSpeedLimit, bool isPrimaryGoal, bool isSecondaryGoal);
 
 	/**
 	 * The copy constructor of the LOSMState object.
@@ -84,10 +86,22 @@ public:
 	float get_distance() const;
 
 	/**
-	 * Get the time traveled.
-	 * @return	The time traveled.
+	 * Get the speed limit traveled.
+	 * @return	The speed limit traveled.
 	 */
-	float get_time() const;
+	float get_speed_limit() const;
+
+	/**
+	 * Return if this is a primary goal state or not.
+	 * @return	Returns if this is a primary goal state or not.
+	 */
+	bool is_primary_goal_state() const;
+
+	/**
+	 * Return if this is a secondary goal state or not.
+	 * @return	Returns if this is a secondary goal state or not.
+	 */
+	bool is_secondary_goal_state() const;
 
 	/**
 	 * Overload the equals operator to set this state equal to the state provided.
@@ -112,12 +126,12 @@ private:
 	/**
 	 * The current LOSM node in which a decision must be made (an intersection).
 	 */
-	LOSMNode *current;
+	const LOSMNode *current;
 
 	/**
 	 * The previous LOSM node from which the agent originated.
 	 */
-	LOSMNode *previous;
+	const LOSMNode *previous;
 
 	/**
 	 * The tiredness level from 0 to MAX_TIREDNESS - 1.
@@ -130,10 +144,19 @@ private:
 	float distance;
 
 	/**
-	 * The time from the current node to the previous node in hours, assuming the car travels
-	 * at the speed limits along the way.
+	 * The average speed limit along this road.
 	 */
-	float time;
+	float speedLimit;
+
+	/**
+	 * If this is a primary goal state or not.
+	 */
+	bool primaryGoalState;
+
+	/**
+	 * If this is a secondary goal state or not.
+	 */
+	bool secondaryGoalState;
 
 };
 

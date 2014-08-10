@@ -62,10 +62,17 @@ public:
 	virtual ~LMDP();
 
 	/**
-	 * Get the factored rewards.
+	 * Get the factored rewards. This is an overloaded method, allowing for explicit
+	 * return of a FactoredRewards object.
 	 * @return	The factored rewards.
 	 */
 	const FactoredRewards *get_rewards() const;
+
+	/**
+	 * Set the slack.
+	 * @param	d	The new slack.
+	 */
+	void set_slack(std::vector<float> *d);
 
 	/**
 	 * Get the slack.
@@ -74,10 +81,22 @@ public:
 	const std::vector<float> *get_slack() const;
 
 	/**
+	 * Set the partitions.
+	 * @param	P	The new partitions.
+	 */
+	void set_partitions(std::vector<std::vector<const State *> > *P);
+
+	/**
 	 * Get the partition over states.
 	 * @return	The partition vector.
 	 */
 	const std::vector<std::vector<const State *> > *get_partitions() const;
+
+	/**
+	 * Set the orderings.
+	 * @param	o	The new orderings.
+	 */
+	void set_orderings(std::vector<std::vector<unsigned int> > *o);
 
 	/**
 	 * Get the orderings for each partition.

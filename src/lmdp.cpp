@@ -56,14 +56,38 @@ const FactoredRewards *LMDP::get_rewards() const
 	return (FactoredRewards *)rewards;
 }
 
+void LMDP::set_slack(std::vector<float> *d)
+{
+	delta.clear();
+	for (float val : *d) {
+		delta.push_back(val);
+	}
+}
+
 const std::vector<float> *LMDP::get_slack() const
 {
 	return &delta;
 }
 
+void LMDP::set_partitions(std::vector<std::vector<const State *> > *P)
+{
+	partition.clear();
+	for (std::vector<const State *> p : *P) {
+		partition.push_back(p);
+	}
+}
+
 const std::vector<std::vector<const State *> > *LMDP::get_partitions() const
 {
 	return &partition;
+}
+
+void LMDP::set_orderings(std::vector<std::vector<unsigned int> > *o)
+{
+	ordering.clear();
+	for (std::vector<unsigned int> r : *o) {
+		ordering.push_back(r);
+	}
 }
 
 const std::vector<std::vector<unsigned int> > *LMDP::get_orderings() const

@@ -22,7 +22,7 @@
  */
 
 
-#include "../include/losm_mdp.h"
+#include "../include/losm_lmdp.h"
 #include "../include/grid_lmdp.h"
 
 #include "../include/lvi.h"
@@ -57,6 +57,10 @@ int main(int argc, char *argv[]) {
 		std::cerr << "Failed to load the files provided." << std::endl;
 		return -1;
 	}
+
+//	losmMDP->set_slack({0.0f, 0.0f, 0.0f});
+//	losmMDP->set_default_conditional_preference();
+//	losmMDP->set_split_conditional_preference();
 
 	delete losmMDP;
 

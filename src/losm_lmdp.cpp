@@ -22,7 +22,7 @@
  */
 
 
-#include "../include/losm_mdp.h"
+#include "../include/losm_lmdp.h"
 #include "../include/losm_state.h"
 
 #include "../../librbr/librbr/include/core/states/states_map.h"
@@ -43,6 +43,11 @@
 #include <cmath>
 #include <set>
 #include <algorithm>
+
+#define GOAL_STREET "Gray Street"
+#define LANDMARK_THRESHOLD 0.01f
+#define SPEED_LIMIT_THRESHOLD 30.0f
+#define DISTANCE_THRESHOLD 0.01f
 
 LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename)
 {
@@ -75,6 +80,10 @@ void LOSMMDP::create_states(LOSM *losm)
 
 	states = new StatesMap();
 
+	std::cout << losm->get_nodes().size() << std::endl; std::cout.flush();
+	std::cout << losm->get_edges().size() << std::endl; std::cout.flush();
+	std::cout << losm->get_landmarks().size() << std::endl; std::cout.flush();
+
 	// Create the set of states from the LOSM object's edges, making states for
 	// both directions, as well as a tiredness level.
 	for (const LOSMEdge *edge : losm->get_edges()) {
@@ -82,13 +91,21 @@ void LOSMMDP::create_states(LOSM *losm)
 		const LOSMNode *n2 = edge->get_node_2();
 
 		float distance = 0.0f;
-		float time = 0.0f;
+		float speedLimit = 0.0f;
+		bool isPrimaryGoal = false;
+		bool isSecondaryGoal = false;
+
+		std::vector<const LOSMNode *> n1Neighbors;
+		losm->get_neighbors(n1, n1Neighbors);
+
+		std::vector<const LOSMNode *> n2Neighbors;
+		losm->get_neighbors(n2, n2Neighbors);
 
 		// Check if one of these is an intersection.
-		if (n1->get_degree() != 2) {
-			n2 = map_directed_path(losm, n2, n1, distance, time);
-		} else if (n2->get_degree() != 2) {
-			n1 = map_directed_path(losm, n1, n2, distance, time);
+		if (n1Neighbors.size() != 2) { // Node 1 is an intersection, so find the other one for Node 2.
+			n2 = map_directed_path(losm, n2, n1, distance, speedLimit, isPrimaryGoal, isSecondaryGoal);
+		} else if (n2Neighbors.size() != 2) { // Node 2 is an intersection, so find the other one for Node 1.
+			n1 = map_directed_path(losm, n1, n2, distance, speedLimit, isPrimaryGoal, isSecondaryGoal);
 		} else {
 			continue;
 		}
@@ -97,10 +114,12 @@ void LOSMMDP::create_states(LOSM *losm)
 		// and 'distance' and 'time' store the respective distance and time.
 		// Now, create the actual pair of LOSMStates.
 		for (int i = 0; i < NUM_TIREDNESS_LEVELS; i++) {
-			((StatesMap *)states)->add(new LOSMState(n1, n2, i, distance, time));
-			((StatesMap *)states)->add(new LOSMState(n2, n1, i, distance, time));
+			((StatesMap *)states)->add(new LOSMState(n1, n2, i, distance, speedLimit, isPrimaryGoal, isSecondaryGoal));
+			((StatesMap *)states)->add(new LOSMState(n2, n1, i, distance, speedLimit, isPrimaryGoal, isSecondaryGoal));
 		}
 	}
+
+	std::cout << ((StatesMap *)states)->get_num_states() << std::endl; std::cout.flush();
 
 	std::cout << "Done States!" << std::endl; std::cout.flush();
 }
@@ -140,31 +159,40 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 		// 'current' in *their* 'previous'.
 		for (auto statePrime : *((StatesMap *)states)) {
 			const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
+
+//			std::cout << currentAction << std::endl; std::cout.flush();
+
 			if (s->get_current() == sp->get_previous()) {
 				// Handle probability differently based on if this is the maximal level of tiredness.
 				if (s->get_tiredness() == NUM_TIREDNESS_LEVELS - 1) {
 					// This is the same (max) level, so it is 1.0 probability.
 					if (s->get_tiredness() == sp->get_tiredness()) {
-						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+//						const Action *a = ((ActionsMap *)actions)->get(currentAction);
 						currentAction++;
 
-						stateTransitions->set(s, a, sp, 1.0);
-						successors[s][a] = sp;
+//						stateTransitions->set(s, a, sp, 1.0);
+//						successors[s][a] = sp;
+//
+//						std::cout << "1.0\n"; std::cout.flush();
 					}
 				} else {
 					// The same level has a probability of 0.9. The next level has a probability of 0.1.
 					if (s->get_tiredness() == sp->get_tiredness()) {
-						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+//						const Action *a = ((ActionsMap *)actions)->get(currentAction);
 						currentAction++;
 
-						stateTransitions->set(s, a, sp, 0.9);
-						successors[s][a] = sp;
+//						stateTransitions->set(s, a, sp, 0.9);
+//						successors[s][a] = sp;
+//
+//						std::cout << "0.9\n"; std::cout.flush();
 					} else if (s->get_tiredness() + 1 == sp->get_tiredness()) {
-						const Action *a = ((ActionsMap *)actions)->get(currentAction);
+//						const Action *a = ((ActionsMap *)actions)->get(currentAction);
 						currentAction++;
 
-						stateTransitions->set(s, a, sp, 0.1);
-						successors[s][a] = sp;
+//						stateTransitions->set(s, a, sp, 0.1);
+//						successors[s][a] = sp;
+//
+//						std::cout << "0.1\n"; std::cout.flush();
 					}
 				}
 			}
@@ -176,7 +204,66 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 void LOSMMDP::create_rewards(LOSM *losm)
 {
-	// TODO: Start here.
+	rewards = new FactoredRewards();
+
+	SASRewardsArray *primaryGoal = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
+	((FactoredRewards *)rewards)->add_factor(primaryGoal);
+
+	SASRewardsArray *secondaryGoal = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
+	((FactoredRewards *)rewards)->add_factor(secondaryGoal);
+
+	SASRewardsArray *fasterRoads = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
+	((FactoredRewards *)rewards)->add_factor(fasterRoads);
+
+	SASRewardsArray *longerRoads = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
+	((FactoredRewards *)rewards)->add_factor(longerRoads);
+
+	for (auto state : *((StatesMap *)states)) {
+		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+
+		for (auto action : *((ActionsMap *)actions)) {
+			const Action *a = resolve(action);
+
+			for (auto statePrime : *((StatesMap *)states)) {
+				const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
+
+//				std::cout << s << " " << a << " " << sp << std::endl; std::cout.flush();
+
+				// If this is a valid successor state, then we can set a reward.
+				if (successors.at(s).at(a)->hash_value() == sp->hash_value()) {
+
+					std::cout << "YAY!\n";
+					// By default, the value functions always has a small penalty.
+					primaryGoal->set(s, a, sp, -0.03);
+					secondaryGoal->set(s, a, sp, -0.03);
+					fasterRoads->set(s, a, sp, -0.03);
+					longerRoads->set(s, a, sp, -0.03);
+
+					// Check if this is a transition to a goal state.
+					if (sp->is_primary_goal_state()) {
+						primaryGoal->set(s, a, sp, 1.0);
+					}
+
+					// Check if this is a secondary goal state.
+					if (sp->is_secondary_goal_state()) {
+						secondaryGoal->set(s, a, sp, 1.0);
+					}
+
+					// Provide a positive reward if this is a 'fast' road.
+					if (sp->get_speed_limit() >= SPEED_LIMIT_THRESHOLD) {
+						fasterRoads->set(s, a, sp, 1.0);
+					}
+
+					// Provide a positive reward if this is a 'long' road.
+					if (sp->get_distance() >= DISTANCE_THRESHOLD) {
+						longerRoads->set(s, a, sp, 1.0);
+					}
+
+					std::cout << sp->get_distance() << std::endl; std::cout.flush();
+				}
+			}
+		}
+	}
 
 	std::cout << "Done Rewards!" << std::endl; std::cout.flush();
 }
@@ -193,7 +280,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 }
 
 const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-		float &distance, float &time)
+		float &distance, float &speedLimit, bool &isPrimaryGoal, bool &isSecondaryGoal)
 {
 	// Once we have found an intersection, we can stop.
 	if (current->get_degree() != 2) {
@@ -201,14 +288,27 @@ const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *cur
 	}
 
 	// Update the distance and time.
+	const LOSMEdge *edge = nullptr;
 	try {
-		const LOSMEdge *edge = edgeHash.at(current->get_uid()).at(previous->get_uid());
-		distance += edge->get_distance();
-		time += edge->get_distance() / (float)edge->get_speed_limit();
+		edge = edgeHash.at(current->get_uid()).at(previous->get_uid());
 	} catch (const std::out_of_range &err) {
-		const LOSMEdge *edge = edgeHash.at(previous->get_uid()).at(current->get_uid());
-		distance += edge->get_distance();
-		time += edge->get_distance() / (float)edge->get_speed_limit();
+		edge = edgeHash.at(previous->get_uid()).at(current->get_uid());
+	}
+	speedLimit += (speedLimit * distance + edge->get_speed_limit() * edge->get_distance()) / (distance + edge->get_distance());
+	distance += edge->get_distance();
+
+	// Check if this is on the goal street (primary goal).
+	if (edge->get_name().compare(GOAL_STREET) == 0) {
+		isPrimaryGoal = true;
+	}
+
+	// Check if this node is nearby any landmarks (secondary goals).
+	for (const LOSMLandmark *landmark : losm->get_landmarks()) {
+		if (point_to_line_distance(landmark->get_x(), landmark->get_y(),
+				current->get_x(), current->get_y(),
+				previous->get_x(), previous->get_y()) < LANDMARK_THRESHOLD) {
+			isSecondaryGoal = true;
+		}
 	}
 
 	// Keep going by traversing the neighbor which is not 'previous'.
@@ -221,8 +321,16 @@ const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *cur
 	}
 
 	if (neighbors[0] == previous) {
-		return map_directed_path(losm, neighbors[1], current, distance, time);
+		return map_directed_path(losm, neighbors[1], current, distance, speedLimit, isPrimaryGoal, isSecondaryGoal);
 	} else {
-		return map_directed_path(losm, neighbors[0], current, distance, time);
+		return map_directed_path(losm, neighbors[0], current, distance, speedLimit, isPrimaryGoal, isSecondaryGoal);
 	}
+}
+
+float LOSMMDP::point_to_line_distance(float x0, float y0, float x1, float y1, float x2, float y2)
+{
+	float Dx = x2 - x1;
+	float Dy = y2 - y1;
+
+	return fabs(Dy * x0 - Dx * y0 - x1 * y2 + x2 * y1) / sqrt(Dx * Dx + Dy * Dy);
 }

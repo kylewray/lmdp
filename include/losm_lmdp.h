@@ -94,14 +94,28 @@ private:
 
 	/**
 	 * Map directed path on the graph to merge nodes between intersections.
-	 * @param	losm		The LOSM object.
-	 * @param	current		The current node.
-	 * @param	previous	The previous node.
-	 * @param	distance	The distance (mi) traveled so far.
-	 * @param	time		The time (h) traveled so far (distance (mi) divided by speed limit (mi / h)).
+	 * @param	losm				The LOSM object.
+	 * @param	current				The current node.
+	 * @param	previous			The previous node.
+	 * @param	distance			The distance (mi) traveled so far.
+	 * @param	speedLimit			The weighted average speed limit (mi / h) traveled so far.
+	 * @param	isPrimaryGoal		If this is a primary goal state or not.
+	 * @param	isSecondaryGoal		If this is a secondary goal state or not.
 	 */
 	const LOSMNode *map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-			float &distance, float &time);
+			float &distance, float &speedLimit, bool &isPrimaryGoal, bool &isSecondaryGoal);
+
+	/**
+	 * Distance from a point to a line formed by two points.
+	 * @param	x0	The point's x-axis.
+	 * @param	y0	The point's y-axis.
+	 * @param	x1	The first point on the line's x-axis.
+	 * @param	y1	The first point on the line's y-axis.
+	 * @param	x2	The second point on the line's x-axis.
+	 * @param	y2	The second point on the line's y-axis.
+	 * @return	The distance from the point to the line formed by the two points.
+	 */
+	float point_to_line_distance(float x0, float y0, float x1, float y1, float x2, float y2);
 
 	/**
 	 * A helper hash which maps the combination of two LOSMNode pointers to an edge.
