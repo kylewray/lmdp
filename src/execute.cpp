@@ -45,8 +45,8 @@
 int main(int argc, char *argv[]) {
 	//* LOSM MDP Version.
 
-	if (argc != 4) {
-		std::cerr << "Please specify nodes, edges, and landmarks data files." << std::endl;
+	if (argc != 5) {
+		std::cerr << "Please specify nodes, edges, and landmarks data files, as well as the policy output file." << std::endl;
 		return -1;
 	}
 
@@ -58,17 +58,24 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-//	losmMDP->set_slack({0.0f, 0.0f, 0.0f});
-//	losmMDP->set_default_conditional_preference();
+	losmMDP->set_slack(0.0f, 0.0f, 0.0f, 0.0f);
+	losmMDP->set_default_conditional_preference();
 //	losmMDP->set_split_conditional_preference();
 
+	PolicyMap *policy = nullptr;
+
+	LVI solver(0.0001);
+	policy = solver.solve(losmMDP);
+	policy->save(argv[4]);
+
+	delete policy;
 	delete losmMDP;
 
 	//*/
 
 
 
-	//* Grid World Version.
+	/* Grid World Version.
 
 	RawFile rawFile;
 

@@ -66,6 +66,35 @@ LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::stri
 LOSMMDP::~LOSMMDP()
 { }
 
+void LOSMMDP::set_slack(float d1, float d2, float d3, float d4)
+{
+	delta.clear();
+	delta.push_back(std::max(0.0f, d1));
+	delta.push_back(std::max(0.0f, d2));
+	delta.push_back(std::max(0.0f, d3));
+	delta.push_back(std::max(0.0f, d4));
+}
+
+void LOSMMDP::set_default_conditional_preference()
+{
+	std::vector<const State *> p;
+	for (auto s : *((StatesMap *)states)) {
+		p.push_back(resolve(s));
+	}
+
+	partition.clear();
+	partition.push_back(p);
+
+	std::vector<unsigned int> r;
+	r.push_back(0);
+	r.push_back(1);
+	r.push_back(2);
+	r.push_back(3);
+
+	ordering.clear();
+	ordering.push_back(r);
+}
+
 void LOSMMDP::create_edges_hash(LOSM *losm)
 {
 	for (const LOSMEdge *edge : losm->get_edges()) {
@@ -156,53 +185,65 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 {
 	stateTransitions = new StateTransitionsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
 
+	std::unordered_map<const LOSMNode *, std::unordered_map<const LOSMNode *, std::vector<const LOSMNode *> > > map;
+
+	// First we need to create a mapping from a state (without tiredness) to a vector of next states (without tiredness).
+	// This vector's order corresponds to actions.
 	for (auto state : *((StatesMap *)states)) {
 		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
 
-		int currentAction = 0;
+		if (s->get_tiredness() != 0) {
+			continue;
+		}
 
-		// With this LOSMState, we have two nodes in the original LOSM graph. These nodes had LOSM edges to
-		// chains of other LOSMNodes, eventually reaching a terminal node (intersection or dead-end). Moving
-		// from 'previous' to 'current', means that we need to find the other LOSMState objects which have
-		// 'current' in *their* 'previous'.
 		for (auto statePrime : *((StatesMap *)states)) {
 			const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
 
-			// Each action corresponds to whatever the next state is that has a match for the current state's current UID,
-			// with the next state's previous UID. This can happen at maximum a number of times equal to
+			if (s->get_tiredness() != 0) {
+				continue;
+			}
 
 			if (s->get_current()->get_uid() == sp->get_previous()->get_uid()) {
+				map[s->get_previous()][s->get_current()].push_back(sp->get_current());
+			}
+		}
+	}
 
-				currentAction++;
-				continue;
+	// Now that a mapping from states (without tiredness) to next states, in a fixed order corresponding to
+	// the actions exists, the final transition probabilities can be set.
+	for (auto state : *((StatesMap *)states)) {
+		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+
+		for (auto statePrime : *((StatesMap *)states)) {
+			const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
+
+			// If the current intersection node for current state matches the previous node for the next state,
+			// then this possibly a non-zero transition probability. It now depends on the tiredness level.
+			if (s->get_current()->get_uid() == sp->get_previous()->get_uid()) {
+				// Figure out which action this corresponds to.
+				const Action *a = nullptr;
+				for (int i = 0; i < (int)((ActionsMap *)actions)->get_num_actions(); i++) {
+					if (map.at(s->get_previous()).at(s->get_current())[i] == sp->get_current()) {
+						a = ((ActionsMap *)actions)->get(i);
+					}
+				}
 
 				// Handle probability differently based on if this is the maximal level of tiredness.
 				if (s->get_tiredness() == NUM_TIREDNESS_LEVELS - 1 && sp->get_tiredness() == NUM_TIREDNESS_LEVELS - 1) {
 					// This is the same (max) level, so it is 1.0 probability.
-					const Action *a = ((ActionsMap *)actions)->get(currentAction);
-					currentAction++;
-
 					stateTransitions->set(s, a, sp, 1.0);
 					successors[s][a] = sp;
 				} else if (s->get_tiredness() == sp->get_tiredness()) {
 					// The same level has a probability of 0.9.
-					const Action *a = ((ActionsMap *)actions)->get(currentAction);
-					currentAction++;
-
 					stateTransitions->set(s, a, sp, 0.9);
 					successors[s][a] = sp;
 				} else if (s->get_tiredness() + 1 == sp->get_tiredness()) {
 					// The next level has a probability of 0.1.
-					const Action *a = ((ActionsMap *)actions)->get(currentAction);
-					currentAction++;
-
 					stateTransitions->set(s, a, sp, 0.1);
 					successors[s][a] = sp;
 				}
 			}
 		}
-
-		std::cout << currentAction << std::endl; std::cout.flush();
 	}
 
 	std::cout << "Done State Transitions!" << std::endl; std::cout.flush();
@@ -232,8 +273,6 @@ void LOSMMDP::create_rewards(LOSM *losm)
 
 			for (auto statePrime : *((StatesMap *)states)) {
 				const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
-
-//				std::cout << s << " " << a << " " << sp << std::endl; std::cout.flush();
 
 				// If this is a valid successor state, then we can set a reward.
 				try {

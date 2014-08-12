@@ -57,7 +57,9 @@ class LMDPVisualizer:
 
         self.vwidth = maxSize
         self.vheight = maxSize
-        self.objSize = 5
+
+        self.roadWidth = 10
+        self.markerSize = 20
 
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
@@ -331,61 +333,45 @@ class LMDPVisualizer:
                 renderer.color = self.highlight[edge.name]
             except:
                 renderer.color = sdl2.ext.Color(255, 255, 255)
-            renderer.draw_line(line)
+#            renderer.draw_line(line)
 
 
 
             # Note: Either do above or the one below... Don't do both.
-#            sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
-#                                        line[0], line[1], line[2], line[3],
-#                                        2,
-#                                        renderer.color.r,
-#                                        renderer.color.g,
-#                                        renderer.color.b,
-#                                        renderer.color.a)
-
-#            sdl2.sdlgfx.stringRGBA(renderer.renderer,
-#                                    int((line[0] + line[2]) / 2),
-#                                    int((line[1] + line[3]) / 2),
-#                                    str.encode(edge.name),
-#                                    renderer.color.r,
-#                                    renderer.color.g,
-#                                    renderer.color.b,
-#                                    renderer.color.a)
-
+            sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
+                                        line[0], line[1], line[2], line[3],
+                                        self.roadWidth,
+                                        renderer.color.r,
+                                        renderer.color.g,
+                                        renderer.color.b,
+                                        renderer.color.a)
 
         #for obj in self.losm.landmarks:
         for obj in self.losm.nodes + self.losm.landmarks:
-            r = (int(self.camera['scale'] * (obj.x + self.camera['x']) + self.vwidth / 2 - self.objSize / 2),
-                 int(self.camera['scale'] * (obj.y + self.camera['y']) + self.vheight / 2 - self.objSize / 2),
-                 int(self.objSize),
-                 int(self.objSize))
+            r = (int(self.camera['scale'] * (obj.x + self.camera['x']) + self.vwidth / 2 - self.markerSize / 2),
+                 int(self.camera['scale'] * (obj.y + self.camera['y']) + self.vheight / 2 - self.markerSize / 2),
+                 int(self.markerSize),
+                 int(self.markerSize))
 
             try:
                 renderer.color = self.highlight[obj.name]
             except:
                 renderer.color = sdl2.ext.Color(255, 255, 255)
 
-            text = None
             try:
-                # Successful if it is a node.
-                text = str(obj.degree)
-
-                if obj.degree == 2:
-                    continue
-            except:
-                # Otherwise it is a landmark.
-                text = obj.name
+                # Successful at accessing 'name' only if it is a landmark.
+                text = str(obj.name)
                 renderer.draw_rect([r])
-
-            sdl2.sdlgfx.stringRGBA(renderer.renderer,
-                                    int(r[0] + r[2] / 2),
-                                    int(r[1] + r[3] / 2 - self.objSize),
-                                    str.encode(text),
-                                    renderer.color.r,
-                                    renderer.color.g,
-                                    renderer.color.b,
-                                    renderer.color.a)
+                sdl2.sdlgfx.stringRGBA(renderer.renderer,
+                                        int(r[0] + r[2] / 2),
+                                        int(r[1] + r[3] / 2 - self.markerSize),
+                                        str.encode(text),
+                                        renderer.color.r,
+                                        renderer.color.g,
+                                        renderer.color.b,
+                                        renderer.color.a)
+            except:
+                pass
 
 
 if __name__ == "__main__":

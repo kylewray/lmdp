@@ -25,7 +25,7 @@
 #ifndef LOSMMDP_H
 #define LOSMMDP_H
 
-#include "../../librbr/librbr/include/mdp/mdp.h"
+#include "lmdp.h"
 
 #include "../../librbr/librbr/include/core/states/state.h"
 #include "../../librbr/librbr/include/core/actions/action.h"
@@ -37,9 +37,9 @@
 #include <unordered_map>
 
 /**
- * A Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences.
+ * A Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences for a LOSM object.
  */
-class LOSMMDP : public MDP {
+class LOSMMDP : public LMDP {
 public:
 	/**
 	 * The default constructor for the LOSMMDP class. It requires the specification of the three
@@ -54,6 +54,20 @@ public:
 	 * A deconstructor for the LOSMMDP class.
 	 */
 	virtual ~LOSMMDP();
+
+	/**
+	 * Set the delta values.
+	 * @param	d1	The first delta.
+	 * @param	d2	The second delta.
+	 * @param	d3	The third delta.
+	 * @param	d4	The fourth delta.
+	 */
+	void set_slack(float d1, float d2, float d3, float d4);
+
+	/**
+	 * Define a 1-partition with the ordering (1, 2, 3, 4) for all states.
+	 */
+	void set_default_conditional_preference();
 
 private:
 	/**

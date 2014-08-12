@@ -30,7 +30,7 @@
 
 #include "../../losm/losm/include/losm_node.h"
 
-#define NUM_TIREDNESS_LEVELS 3
+#define NUM_TIREDNESS_LEVELS 1
 
 /**
  * A custom LSOM state class which holds the two LOSM nodes (in order) and other relevant information.
