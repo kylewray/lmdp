@@ -57,7 +57,7 @@ class LMDPVisualizer:
 
         self.vwidth = maxSize
         self.vheight = maxSize
-        self.objSize = 20
+        self.objSize = 5
 
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
@@ -333,6 +333,8 @@ class LMDPVisualizer:
                 renderer.color = sdl2.ext.Color(255, 255, 255)
             renderer.draw_line(line)
 
+
+
             # Note: Either do above or the one below... Don't do both.
 #            sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
 #                                        line[0], line[1], line[2], line[3],
@@ -352,8 +354,8 @@ class LMDPVisualizer:
 #                                    renderer.color.a)
 
 
-        for obj in self.losm.landmarks:
-        #for obj in self.losm.nodes + self.losm.landmarks:
+        #for obj in self.losm.landmarks:
+        for obj in self.losm.nodes + self.losm.landmarks:
             r = (int(self.camera['scale'] * (obj.x + self.camera['x']) + self.vwidth / 2 - self.objSize / 2),
                  int(self.camera['scale'] * (obj.y + self.camera['y']) + self.vheight / 2 - self.objSize / 2),
                  int(self.objSize),
@@ -363,19 +365,27 @@ class LMDPVisualizer:
                 renderer.color = self.highlight[obj.name]
             except:
                 renderer.color = sdl2.ext.Color(255, 255, 255)
-            renderer.draw_rect([r])
 
+            text = None
             try:
-                sdl2.sdlgfx.stringRGBA(renderer.renderer,
-                                        int(r[0] + r[2] / 2),
-                                        int(r[1] + r[3] / 2 - self.objSize),
-                                        str.encode(obj.name),
-                                        renderer.color.r,
-                                        renderer.color.g,
-                                        renderer.color.b,
-                                        renderer.color.a)
+                # Successful if it is a node.
+                text = str(obj.degree)
+
+                if obj.degree == 2:
+                    continue
             except:
-                pass
+                # Otherwise it is a landmark.
+                text = obj.name
+                renderer.draw_rect([r])
+
+            sdl2.sdlgfx.stringRGBA(renderer.renderer,
+                                    int(r[0] + r[2] / 2),
+                                    int(r[1] + r[3] / 2 - self.objSize),
+                                    str.encode(text),
+                                    renderer.color.r,
+                                    renderer.color.g,
+                                    renderer.color.b,
+                                    renderer.color.a)
 
 
 if __name__ == "__main__":
