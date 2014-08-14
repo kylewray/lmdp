@@ -33,7 +33,7 @@
 #define NUM_TIREDNESS_LEVELS 2
 
 #define AUTONOMY_DISTANCE_THRESHOLD 0.001
-#define AUTONOMY_SPEED_LIMIT_THRESHOLD 35.0
+#define AUTONOMY_SPEED_LIMIT_THRESHOLD 25.0
 #define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
 
 #define GOAL_STREET_NAME "Gray Street"
@@ -48,14 +48,15 @@ public:
 	 * @param	currentNode			The current LOSM node in which a decision must be made (an intersection).
 	 * @param	previousNode		The previous LOSM node from which the agent originated (an intersection).
 	 * @param	tirednessLevel		The level of tiredness from 0 to MAX_TIREDNESS - 1.
-	 * @param	autonomy			If the autonomy is enabled or not.
+	 * @param	autonomyEnabled		If the autonomy is enabled or not.
 	 * @param	travelDistance		The distance (mi) from the current to previous nodes.
 	 * @param	travelSpeedLimit	The time (h) from the current to previous nodes.
 	 * @param	isGoal				If this is a goal state or not.
 	 * @param	isAutonomyCapable	If this is an autonomy capable state or not.
 	 */
 	LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-			bool autonomyEnabled, float travelDistance, float travelSpeedLimit, bool isGoal, bool isAutonomyCapable);
+			bool autonomyEnabled, float travelDistance, float travelSpeedLimit,
+			bool isGoalState, bool isAutonomyCapableState);
 
 	/**
 	 * The copy constructor of the LOSMState object.
@@ -90,7 +91,18 @@ public:
 	 * Get if the autonomy is enabled or not.
 	 * @return	If the autonomy is enabled or not.
 	 */
-	bool is_autonomy_enabled() const;
+	bool get_autonomy() const;
+
+	/**
+	 * Get the uniqueness index.
+	 * @return	The uniqueness index.
+	 */
+	unsigned int get_uniqueness_index() const;
+
+	/**
+	 * Reset the uniqueness counters.
+	 */
+	static void reset_uniqueness_counters();
 
 	/**
 	 * Get the distance traveled.
@@ -137,14 +149,14 @@ public:
 
 private:
 	/**
-	 * The current LOSM node in which a decision must be made (an intersection).
-	 */
-	const LOSMNode *current;
-
-	/**
 	 * The previous LOSM node from which the agent originated.
 	 */
 	const LOSMNode *previous;
+
+	/**
+	 * The current LOSM node in which a decision must be made (an intersection).
+	 */
+	const LOSMNode *current;
 
 	/**
 	 * The tiredness level from 0 to MAX_TIREDNESS - 1.
@@ -155,6 +167,21 @@ private:
 	 * If autonomy has been enabled or not.
 	 */
 	bool autonomy;
+
+	/**
+	 * The uniqueness index, since the four above values can actually be found in
+	 * multiple parts of a map due to multiple paths which lead between the same
+	 * intersections.
+	 */
+	unsigned int uniquenessIndex;
+
+	/**
+	 * The static variable to keep track of the current uniqueness.
+	 */
+	static std::unordered_map<const LOSMNode *,
+		std::unordered_map<const LOSMNode *,
+			std::unordered_map<unsigned int,
+				std::unordered_map<bool, unsigned int> > > > uniquenessCounter;
 
 	/**
 	 * The distance from the current node to the previous node in miles.
@@ -169,12 +196,12 @@ private:
 	/**
 	 * If this is a goal state or not.
 	 */
-	bool goal;
+	bool isGoal;
 
 	/**
 	 * If this is an autonomy capable state or not.
 	 */
-	bool autonomyCapable;
+	bool isAutonomyCapable;
 
 };
 

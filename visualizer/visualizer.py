@@ -40,7 +40,7 @@ class LMDPVisualizer:
         by solving the corresponding LMDP.
     """
 
-    def __init__(self, highlight=dict(), maxSize=1600, filePrefix=None, policyFile=None):
+    def __init__(self, highlight=dict(), maxSize=1920, filePrefix=None, policyFile=None):
         """ The constructor for the LMDP class. Optionally, allow for the LOSM files
             to be loaded with the corresponding prefix. Also, optionally allow for
             the policy to be loaded.
@@ -52,8 +52,8 @@ class LMDPVisualizer:
                 policyFile  -- The policy file to load.
         """
 
-        self.width = 1600
-        self.height = 900
+        self.width = 1920
+        self.height = 1200
 
         self.vwidth = maxSize
         self.vheight = maxSize
@@ -373,7 +373,9 @@ class LMDPVisualizer:
                 #if obj.uid == 66662044 or obj.uid == 66615634:
                 #if obj.uid == 66766106 or obj.uid == 66768014:
                 #if obj.uid == 66639588 or obj.uid == 66661455:
-                if obj.uid == 66759366 or obj.uid == 66757758:
+                #if obj.uid == 66759366 or obj.uid == 66757758:
+                #if obj.uid == 2518152976 or obj.uid == 2518152981:
+                if obj.uid == 66662044 or obj.uid == 66686778:
                     renderer.draw_rect([r])
 
 

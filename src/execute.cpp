@@ -43,7 +43,7 @@
 #include <unordered_map>
 
 int main(int argc, char *argv[]) {
-	//* LOSM MDP Version.
+	/* LOSM MDP Version.
 
 	if (argc != 5) {
 		std::cerr << "Please specify nodes, edges, and landmarks data files, as well as the policy output file." << std::endl;
@@ -58,9 +58,9 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	losmMDP->set_slack(0.0f, 0.0f, 0.0f, 0.0f);
-	losmMDP->set_default_conditional_preference();
-//	losmMDP->set_split_conditional_preference();
+	losmMDP->set_slack(0.0f, 0.0f);
+//	losmMDP->set_uniform_conditional_preference();
+	losmMDP->set_tiredness_conditional_preference();
 
 	PolicyMap *policy = nullptr;
 
@@ -75,20 +75,20 @@ int main(int argc, char *argv[]) {
 
 
 
-	/* Grid World Version.
+	//* Grid World Version.
 
 	RawFile rawFile;
 
 //	GridLMDP *gridLMDP = new GridLMDP(0, 5, 0, -0.03);
-	GridLMDP *gridLMDP = new GridLMDP(0, 10, 0, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(0, 10, 0, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 8, 10, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(3, 15, 30, -0.03);
-//	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
+	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
-	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
-	gridLMDP->set_default_conditional_preference();
-//	gridLMDP->set_split_conditional_preference();
+	gridLMDP->set_slack(0.0f, 5.0f, 0.0f);
+//	gridLMDP->set_default_conditional_preference();
+	gridLMDP->set_split_conditional_preference();
 
 	PolicyMap *policy = nullptr;
 

@@ -21,25 +21,25 @@
 							<builder buildPath="${workspace_loc:/glevi}/Execute" id="cdt.managedbuild.target.gnu.builder.base.766863895" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.254193538" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
-								<option id="gnu.cpp.compiler.option.include.paths.1009972802" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+								<option id="gnu.cpp.compiler.option.include.paths.1009972802" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../nova/nova/BuildLibrary&quot;"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.optimization.level.960114414" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.debugging.level.411057599" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.dialect.std.799558952" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.c++1y" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.optimization.level.960114414" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.debugging.level.411057599" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.799558952" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++1y" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1091278393" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.188304702" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
-								<option id="gnu.c.compiler.option.include.paths.2032980491" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+								<option id="gnu.c.compiler.option.include.paths.2032980491" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/losm}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/librbr}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../nova/nova/BuildLibrary&quot;"/>
 								</option>
-								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.option.optimization.level.561505206" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.debugging.level.1677193143" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.dialect.std.904112439" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.c11" valueType="enumerated"/>
+								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.option.optimization.level.561505206" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.debugging.level.1677193143" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.dialect.std.904112439" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.c11" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.489552980" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.1450943579" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base"/>
@@ -69,6 +69,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.macosx.exe.release.25319114.508952378" name="losm_lmdp.cpp" rcbsApplicability="disable" resourcePath="src/losm_lmdp.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784.1231693528">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784.1231693528" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784">
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1320873895" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
@@ -103,7 +108,7 @@
 			<resource resourceType="PROJECT" workspacePath="/lvmax"/>
 		</configuration>
 		<configuration configurationName="Execute">
-			<resource resourceType="PROJECT" workspacePath="/lexicographic_value_iteration"/>
+			<resource resourceType="PROJECT" workspacePath="/lmdp"/>
 		</configuration>
 		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/lvmax"/>
@@ -112,22 +117,22 @@
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.459266973;cdt.managedbuild.tool.gnu.c.compiler.input.955541292">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784;cdt.managedbuild.tool.gnu.cpp.compiler.input.1091278393">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release.1469505963;cdt.managedbuild.tool.gnu.cpp.compiler.input.223076573">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.459266973;cdt.managedbuild.tool.gnu.c.compiler.input.955541292">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315;cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.debug.2119410807;cdt.managedbuild.tool.gnu.cpp.compiler.input.866725935">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.cpp.compiler.base.1553899784;cdt.managedbuild.tool.gnu.cpp.compiler.input.1091278393">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315;cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.161274519;cdt.managedbuild.tool.gnu.c.compiler.input.2146031531">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release.1469505963;cdt.managedbuild.tool.gnu.cpp.compiler.input.223076573">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.25319114;cdt.managedbuild.config.macosx.exe.release.25319114.;cdt.managedbuild.tool.gnu.c.compiler.base.188304702;cdt.managedbuild.tool.gnu.c.compiler.input.489552980">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315;cdt.managedbuild.config.gnu.macosx.exe.debug.1960004315.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.161274519;cdt.managedbuild.tool.gnu.c.compiler.input.2146031531">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>

@@ -34,6 +34,7 @@
 
 #include "losm_state.h"
 
+#include <vector>
 #include <unordered_map>
 
 /**
@@ -141,9 +142,9 @@ private:
 	std::unordered_map<unsigned int, std::unordered_map<unsigned int, const LOSMEdge *> > edgeHash;
 
 	/**
-	 * A map of successors from an action. Used to make use of the final policy, e.g., video.
+	 * A map of possible successors from an action. Used to create videos.
 	 */
-	std::unordered_map<const LOSMState *, std::unordered_map<const Action *, const LOSMState *> > successors;
+//	std::unordered_map<const LOSMNode *, std::unordered_map<const Action *, std::vector<const LOSMNode *> > > successors;
 
 };
 

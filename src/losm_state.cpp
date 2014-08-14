@@ -28,17 +28,28 @@
 
 #include <iostream>
 
+std::unordered_map<const LOSMNode *,
+	std::unordered_map<const LOSMNode *,
+		std::unordered_map<unsigned int,
+			std::unordered_map<bool, unsigned int> > > > LOSMState::uniquenessCounter;
+
 LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-		bool autonomyEnabled, float travelDistance, float travelSpeedLimit, bool isGoal, bool isAutonomyCapable)
+		bool autonomyEnabled, float travelDistance, float travelSpeedLimit,
+		bool isGoalState, bool isAutonomyCapableState)
 {
 	current = currentNode;
 	previous = previousNode;
 	tiredness = tirednessLevel;
 	autonomy = autonomyEnabled;
+
+	// Note: This will assign 0 if the mapping is undefined (for the first time); i.e., it works.
+	uniquenessIndex = uniquenessCounter[previous][current][tiredness][autonomy];
+	uniquenessCounter[previous][current][tiredness][autonomy]++;
+
 	distance = travelDistance;
 	speedLimit = travelSpeedLimit;
-	goal = isGoal;
-	autonomyCapable = isAutonomyCapable;
+	isGoal = isGoalState;
+	isAutonomyCapable = isAutonomyCapableState;
 }
 
 LOSMState::LOSMState(const LOSMState &other)
@@ -47,10 +58,7 @@ LOSMState::LOSMState(const LOSMState &other)
 }
 
 LOSMState::~LOSMState()
-{
-	delete current;
-	delete previous;
-}
+{ }
 
 const LOSMNode *LOSMState::get_current() const
 {
@@ -67,9 +75,19 @@ unsigned int LOSMState::get_tiredness() const
 	return tiredness;
 }
 
-bool LOSMState::is_autonomy_enabled() const
+bool LOSMState::get_autonomy() const
 {
 	return autonomy;
+}
+
+unsigned int LOSMState::get_uniqueness_index() const
+{
+	return uniquenessIndex;
+}
+
+void LOSMState::reset_uniqueness_counters()
+{
+	uniquenessCounter.clear();
 }
 
 float LOSMState::get_distance() const
@@ -84,12 +102,12 @@ float LOSMState::get_speed_limit() const
 
 bool LOSMState::is_goal() const
 {
-	return goal;
+	return isGoal;
 }
 
 bool LOSMState::is_autonomy_capable() const
 {
-	return autonomyCapable;
+	return isAutonomyCapable;
 }
 
 State &LOSMState::operator=(const State &other)
@@ -108,8 +126,8 @@ State &LOSMState::operator=(const State &other)
 	autonomy = state->autonomy;
 	distance = state->distance;
 	speedLimit = state->speedLimit;
-	goal = state->goal;
-	autonomyCapable = state->autonomyCapable;
+	isGoal = state->isGoal;
+	isAutonomyCapable = state->isAutonomyCapable;
 
 	return *this;
 }
