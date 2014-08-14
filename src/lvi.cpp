@@ -228,8 +228,8 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		double difference = convergenceCriterion + 1.0;
 
 		// For this V_i, converge until you reach within epsilon of V_i^*.
-//		while (difference > convergenceCriterion) {
-//			std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
+		while (difference > convergenceCriterion) {
+			std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
 
 			difference = 0.0;
 
@@ -260,7 +260,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			for (auto s : Pj) {
 				V[oj[i]][s] = Vi[s];
 			}
-//		}
+		}
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
 		if (i != R->get_num_rewards() - 1) {

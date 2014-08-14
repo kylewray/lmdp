@@ -29,19 +29,16 @@
 #include <iostream>
 
 LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-		float travelDistance, float travelSpeedLimit, bool isPrimaryGoal, bool isSecondaryGoal)
+		bool autonomyEnabled, float travelDistance, float travelSpeedLimit, bool isGoal, bool isAutonomyCapable)
 {
 	current = currentNode;
 	previous = previousNode;
-//	current = new LOSMNode(currentNode->get_uid(),
-//			currentNode->get_x(), currentNode->get_y(), currentNode->get_degree());
-//	previous = new LOSMNode(previousNode->get_uid(),
-//			previousNode->get_x(), previousNode->get_y(), previousNode->get_degree());
 	tiredness = tirednessLevel;
+	autonomy = autonomyEnabled;
 	distance = travelDistance;
 	speedLimit = travelSpeedLimit;
-	primaryGoalState = isPrimaryGoal;
-	secondaryGoalState = isSecondaryGoal;
+	goal = isGoal;
+	autonomyCapable = isAutonomyCapable;
 }
 
 LOSMState::LOSMState(const LOSMState &other)
@@ -70,6 +67,11 @@ unsigned int LOSMState::get_tiredness() const
 	return tiredness;
 }
 
+bool LOSMState::is_autonomy_enabled() const
+{
+	return autonomy;
+}
+
 float LOSMState::get_distance() const
 {
 	return distance;
@@ -80,14 +82,14 @@ float LOSMState::get_speed_limit() const
 	return speedLimit;
 }
 
-bool LOSMState::is_primary_goal_state() const
+bool LOSMState::is_goal() const
 {
-	return primaryGoalState;
+	return goal;
 }
 
-bool LOSMState::is_secondary_goal_state() const
+bool LOSMState::is_autonomy_capable() const
 {
-	return secondaryGoalState;
+	return autonomyCapable;
 }
 
 State &LOSMState::operator=(const State &other)
@@ -98,76 +100,26 @@ State &LOSMState::operator=(const State &other)
 		throw StateException();
 	}
 
-	delete current;
-	delete previous;
-
 	index = state->index;
 
-	current = new LOSMNode(state->current->get_uid(),
-			state->current->get_x(),
-			state->current->get_y(),
-			state->current->get_degree());
-	previous = new LOSMNode(state->previous->get_uid(),
-			state->previous->get_x(),
-			state->previous->get_y(),
-			state->previous->get_degree());
+	current = state->current;
+	previous = state->previous;
 	tiredness = state->tiredness;
+	autonomy = state->autonomy;
 	distance = state->distance;
 	speedLimit = state->speedLimit;
-	primaryGoalState = state->primaryGoalState;
-	secondaryGoalState = state->secondaryGoalState;
+	goal = state->goal;
+	autonomyCapable = state->autonomyCapable;
 
 	return *this;
 }
 
 std::string LOSMState::to_string() const
 {
-	std::string result = "Current Node ";
-	result += current->get_uid();
-	result += " has position (";
-	result += current->get_x();
-	result += ", ";
-	result += current->get_y();
-	result += ") with degree ";
-	result += current->get_degree();
-
-	result += "; Previous Node ";
-	result += previous->get_uid();
-	result += " has position (";
-	result += previous->get_x();
-	result += ", ";
-	result += previous->get_y();
-	result += ") with degree ";
-	result += previous->get_degree();
-
-	result += "; Tiredness of ";
-	result += tiredness;
-
-	result += "; Distance of ";
-	result += distance;
-
-	result += "; Speed Limit of ";
-	result += speedLimit;
-
-	if (primaryGoalState) {
-		result += "; Primary Goal State";
-	}
-
-	if (secondaryGoalState) {
-		result += "; Secondary Goal State";
-	}
-
-	result += ".";
-
-	return result;
+	return IndexedState::to_string();
 }
 
 unsigned int LOSMState::hash_value() const
 {
-//	unsigned int hash = 7;
-//	hash = 31 * hash + node->get_uid();
-//	hash = 31 * hash + (int)direction;
-//	return hash;
-
-	return index;
+	return IndexedState::hash_value();
 }

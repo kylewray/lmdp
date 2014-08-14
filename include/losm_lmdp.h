@@ -59,15 +59,19 @@ public:
 	 * Set the delta values.
 	 * @param	d1	The first delta.
 	 * @param	d2	The second delta.
-	 * @param	d3	The third delta.
-	 * @param	d4	The fourth delta.
 	 */
-	void set_slack(float d1, float d2, float d3, float d4);
+	void set_slack(float d1, float d2);
 
 	/**
-	 * Define a 1-partition with the ordering (1, 2, 3, 4) for all states.
+	 * Define a 1-partition with the ordering (1, 2) for all states.
 	 */
-	void set_default_conditional_preference();
+	void set_uniform_conditional_preference();
+
+	/**
+	 * Define a 2-partition with the ordering (1, 2) for all states without a tired driver, and
+	 * (2, 1) for all states with a tired driver.
+	 */
+	void set_tiredness_conditional_preference();
 
 private:
 	/**
@@ -108,16 +112,15 @@ private:
 
 	/**
 	 * Map directed path on the graph to merge nodes between intersections.
-	 * @param	losm				The LOSM object.
-	 * @param	current				The current node.
-	 * @param	previous			The previous node.
-	 * @param	distance			The distance (mi) traveled so far.
-	 * @param	speedLimit			The weighted average speed limit (mi / h) traveled so far.
-	 * @param	isPrimaryGoal		If this is a primary goal state or not.
-	 * @param	isSecondaryGoal		If this is a secondary goal state or not.
+	 * @param	losm			The LOSM object.
+	 * @param	current			The current node.
+	 * @param	previous		The previous node.
+	 * @param	distance		The distance (mi) traveled so far.
+	 * @param	speedLimit		The weighted average speed limit (mi / h) traveled so far.
+	 * @param	isGoal			If this is a primary goal state or not.
 	 */
 	const LOSMNode *map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-			float &distance, float &speedLimit, bool &isPrimaryGoal, bool &isSecondaryGoal);
+			float &distance, float &speedLimit, bool &isGoal);
 
 	/**
 	 * Distance from a point to a line formed by two points.

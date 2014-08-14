@@ -58,7 +58,7 @@ class LMDPVisualizer:
         self.vwidth = maxSize
         self.vheight = maxSize
 
-        self.roadWidth = 10
+        self.roadWidth = 5
         self.markerSize = 20
 
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
@@ -189,7 +189,7 @@ class LMDPVisualizer:
 
             self._update_camera()
 
-            renderer.color = sdl2.ext.Color(0, 0, 0)
+            renderer.color = sdl2.ext.Color(230, 230, 220)
             renderer.clear()
             self._render_map(renderer)
             renderer.present()
@@ -226,13 +226,13 @@ class LMDPVisualizer:
                 self.camera['target'] = 1.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_2:
-                self.camera['target'] = 10.0
+                self.camera['target'] = 5.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_3:
-                self.camera['target'] = 20.0
+                self.camera['target'] = 10.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_4:
-                self.camera['target'] = 30.0
+                self.camera['target'] = 20.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_5:
                 self.camera['target'] = 40.0
@@ -333,9 +333,7 @@ class LMDPVisualizer:
                 renderer.color = self.highlight[edge.name]
             except:
                 renderer.color = sdl2.ext.Color(255, 255, 255)
-#            renderer.draw_line(line)
-
-
+            renderer.draw_line(line)
 
             # Note: Either do above or the one below... Don't do both.
             sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
@@ -356,7 +354,7 @@ class LMDPVisualizer:
             try:
                 renderer.color = self.highlight[obj.name]
             except:
-                renderer.color = sdl2.ext.Color(255, 255, 255)
+                renderer.color = sdl2.ext.Color(0, 0, 0)
 
             try:
                 # Successful at accessing 'name' only if it is a landmark.
@@ -371,15 +369,20 @@ class LMDPVisualizer:
                                         renderer.color.b,
                                         renderer.color.a)
             except:
-                pass
+                #if obj.uid == 2518152976 or obj.uid == 2518152981:
+                #if obj.uid == 66662044 or obj.uid == 66615634:
+                #if obj.uid == 66766106 or obj.uid == 66768014:
+                #if obj.uid == 66639588 or obj.uid == 66661455:
+                if obj.uid == 66759366 or obj.uid == 66757758:
+                    renderer.draw_rect([r])
 
 
 if __name__ == "__main__":
     # --- DEBUG ---
     h = dict()
-    h['Gray Street'] = sdl2.ext.Color(255, 0, 0)
-    h['Rao\'s cafe'] = sdl2.ext.Color(0, 255, 0)
-    h['Amherst coffee'] = sdl2.ext.Color(0, 0, 255)
+    h['Gray Street'] = sdl2.ext.Color(200, 0, 0)
+    h['Rao\'s cafe'] = sdl2.ext.Color(0, 200, 0)
+    h['Amherst coffee'] = sdl2.ext.Color(0, 0, 200)
 
     if len(sys.argv) == 2:
         v = LMDPVisualizer(highlight=h, filePrefix=sys.argv[1])

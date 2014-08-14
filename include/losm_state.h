@@ -30,7 +30,13 @@
 
 #include "../../losm/losm/include/losm_node.h"
 
-#define NUM_TIREDNESS_LEVELS 1
+#define NUM_TIREDNESS_LEVELS 2
+
+#define AUTONOMY_DISTANCE_THRESHOLD 0.001
+#define AUTONOMY_SPEED_LIMIT_THRESHOLD 35.0
+#define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
+
+#define GOAL_STREET_NAME "Gray Street"
 
 /**
  * A custom LSOM state class which holds the two LOSM nodes (in order) and other relevant information.
@@ -42,13 +48,14 @@ public:
 	 * @param	currentNode			The current LOSM node in which a decision must be made (an intersection).
 	 * @param	previousNode		The previous LOSM node from which the agent originated (an intersection).
 	 * @param	tirednessLevel		The level of tiredness from 0 to MAX_TIREDNESS - 1.
+	 * @param	autonomy			If the autonomy is enabled or not.
 	 * @param	travelDistance		The distance (mi) from the current to previous nodes.
 	 * @param	travelSpeedLimit	The time (h) from the current to previous nodes.
-	 * @param	isPrimaryGoal		If this is a primary goal state or not.
-	 * @param	isSecondaryGoal		If this is a secondary goal state or not.
+	 * @param	isGoal				If this is a goal state or not.
+	 * @param	isAutonomyCapable	If this is an autonomy capable state or not.
 	 */
 	LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
-			float travelDistance, float travelSpeedLimit, bool isPrimaryGoal, bool isSecondaryGoal);
+			bool autonomyEnabled, float travelDistance, float travelSpeedLimit, bool isGoal, bool isAutonomyCapable);
 
 	/**
 	 * The copy constructor of the LOSMState object.
@@ -80,6 +87,12 @@ public:
 	unsigned int get_tiredness() const;
 
 	/**
+	 * Get if the autonomy is enabled or not.
+	 * @return	If the autonomy is enabled or not.
+	 */
+	bool is_autonomy_enabled() const;
+
+	/**
 	 * Get the distance traveled.
 	 * @return	The distance traveled.
 	 */
@@ -92,16 +105,16 @@ public:
 	float get_speed_limit() const;
 
 	/**
-	 * Return if this is a primary goal state or not.
-	 * @return	Returns if this is a primary goal state or not.
+	 * Return if this is a goal state or not.
+	 * @return	Returns if this is a goal state or not.
 	 */
-	bool is_primary_goal_state() const;
+	bool is_goal() const;
 
 	/**
-	 * Return if this is a secondary goal state or not.
-	 * @return	Returns if this is a secondary goal state or not.
+	 * Return if this is an autonomy capable state or not.
+	 * @return	Returns if this is an autonomy capable state or not.
 	 */
-	bool is_secondary_goal_state() const;
+	bool is_autonomy_capable() const;
 
 	/**
 	 * Overload the equals operator to set this state equal to the state provided.
@@ -139,6 +152,11 @@ private:
 	unsigned int tiredness;
 
 	/**
+	 * If autonomy has been enabled or not.
+	 */
+	bool autonomy;
+
+	/**
 	 * The distance from the current node to the previous node in miles.
 	 */
 	float distance;
@@ -149,14 +167,14 @@ private:
 	float speedLimit;
 
 	/**
-	 * If this is a primary goal state or not.
+	 * If this is a goal state or not.
 	 */
-	bool primaryGoalState;
+	bool goal;
 
 	/**
-	 * If this is a secondary goal state or not.
+	 * If this is an autonomy capable state or not.
 	 */
-	bool secondaryGoalState;
+	bool autonomyCapable;
 
 };
 
