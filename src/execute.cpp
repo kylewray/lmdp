@@ -43,7 +43,7 @@
 #include <unordered_map>
 
 int main(int argc, char *argv[]) {
-	/* LOSM MDP Version.
+	//* LOSM MDP Version.
 
 	if (argc != 5) {
 		std::cerr << "Please specify nodes, edges, and landmarks data files, as well as the policy output file." << std::endl;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	losmMDP->set_slack(0.0f, 0.0f);
+	losmMDP->set_slack(10.0f, 0.5f);
 //	losmMDP->set_uniform_conditional_preference();
 	losmMDP->set_tiredness_conditional_preference();
 
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 
 
 
-	//* Grid World Version.
+	/* Grid World Version.
 
 	RawFile rawFile;
 

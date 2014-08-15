@@ -53,10 +53,13 @@ public:
 	 * @param	travelSpeedLimit	The time (h) from the current to previous nodes.
 	 * @param	isGoal				If this is a goal state or not.
 	 * @param	isAutonomyCapable	If this is an autonomy capable state or not.
+	 * @param	currentStepNode		One edge step from the current node towards the previous node. Used for animations later.
+	 * @param	previousStepNode	One edge step from the previous node towards the current node. Used for animations later.
 	 */
 	LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
 			bool autonomyEnabled, float travelDistance, float travelSpeedLimit,
-			bool isGoalState, bool isAutonomyCapableState);
+			bool isGoalState, bool isAutonomyCapableState,
+			const LOSMNode *currentStepNode, const LOSMNode *previousStepNode);
 
 	/**
 	 * The copy constructor of the LOSMState object.
@@ -127,6 +130,18 @@ public:
 	 * @return	Returns if this is an autonomy capable state or not.
 	 */
 	bool is_autonomy_capable() const;
+
+	/**
+	 * Get the current step node.
+	 * @return	The current step node.
+	 */
+	const LOSMNode *get_current_step() const;
+
+	/**
+	 * Get the previous step node.
+	 * @return	The previous step node.
+	 */
+	const LOSMNode *get_previous_step() const;
 
 	/**
 	 * Overload the equals operator to set this state equal to the state provided.
@@ -202,6 +217,16 @@ private:
 	 * If this is an autonomy capable state or not.
 	 */
 	bool isAutonomyCapable;
+
+	/**
+	 * One edge step from the current node towards the previous node. Used for animations later.
+	 */
+	const LOSMNode *currentStep;
+
+	/**
+	 * One edge step from the previous node towards the current node. Used for animations later.
+	 */
+	const LOSMNode *previousStep;
 
 };
 

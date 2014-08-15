@@ -142,6 +142,9 @@ void LOSMMDP::create_states(LOSM *losm)
 		const LOSMNode *current = nullptr;
 		const LOSMNode *previous = nullptr;
 
+		const LOSMNode *currentStepNode = nullptr;
+		const LOSMNode *previousStepNode = nullptr;
+
 		float distance = 0.0f;
 		float speedLimit = 0.0f;
 		bool isGoal = false;
@@ -153,20 +156,29 @@ void LOSMMDP::create_states(LOSM *losm)
 
 		if (edge->get_node_1()->get_degree() != 2 && edge->get_node_2()->get_degree() != 2) {
 			// This computes the distance, speed limit, etc.
-			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal);
+			const LOSMNode *nothing = nullptr;
+			const LOSMNode *nothingStep = nullptr;
+			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal, nothing, nothingStep);
+
 			current = edge->get_node_1();
 			previous = edge->get_node_2();
+
+			currentStepNode = edge->get_node_2();
+			previousStepNode = edge->get_node_1();
+
 			createBoth = true;
 
 		} else if (edge->get_node_1()->get_degree() != 2 && edge->get_node_2()->get_degree() == 2) {
 			// Node 1 is interesting, so find the other interesting one for Node 2.
 			current = edge->get_node_1();
-			previous = map_directed_path(losm, edge->get_node_2(), edge->get_node_1(), distance, speedLimit, isGoal);
+			currentStepNode = edge->get_node_2();
+			map_directed_path(losm, edge->get_node_2(), edge->get_node_1(), distance, speedLimit, isGoal, previous, previousStepNode);
 
 		} else if (edge->get_node_1()->get_degree() == 2 && edge->get_node_2()->get_degree() != 2) {
 			// Node 2 is interesting, so find the other interesting one for Node 1.
 			current = edge->get_node_2();
-			previous = map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal);
+			currentStepNode = edge->get_node_1();
+			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal, previous, previousStepNode);
 
 		} else {
 			continue;
@@ -181,16 +193,24 @@ void LOSMMDP::create_states(LOSM *losm)
 		// Now, create the actual pair of LOSMStates.
 		for (int i = 0; i < NUM_TIREDNESS_LEVELS; i++) {
 			// Autonomy is not enabled. This always exists.
-			((StatesMap *)states)->add(new LOSMState(current, previous, i, false, distance, speedLimit, isGoal, isAutonomyCapable));
+			((StatesMap *)states)->add(new LOSMState(current, previous, i, false,
+													distance, speedLimit, isGoal, isAutonomyCapable,
+													currentStepNode, previousStepNode));
 			if (createBoth) {
-				((StatesMap *)states)->add(new LOSMState(previous, current, i, false, distance, speedLimit, isGoal, isAutonomyCapable));
+				((StatesMap *)states)->add(new LOSMState(previous, current, i, false,
+														distance, speedLimit, isGoal, isAutonomyCapable,
+														previousStepNode, currentStepNode));
 			}
 
 			// If possible, create the states in which autonomy is enabled. This may or may not exist.
 			if (isAutonomyCapable) {
-				((StatesMap *)states)->add(new LOSMState(current, previous, i, true, distance, speedLimit, isGoal, isAutonomyCapable));
+				((StatesMap *)states)->add(new LOSMState(current, previous, i, true,
+														distance, speedLimit, isGoal, isAutonomyCapable,
+														currentStepNode, previousStepNode));
 				if (createBoth) {
-					((StatesMap *)states)->add(new LOSMState(previous, current, i, true, distance, speedLimit, isGoal, isAutonomyCapable));
+					((StatesMap *)states)->add(new LOSMState(previous, current, i, true,
+														distance, speedLimit, isGoal, isAutonomyCapable,
+														previousStepNode, currentStepNode));
 				}
 			}
 		}
@@ -420,8 +440,9 @@ void LOSMMDP::create_misc(LOSM *losm)
 	std::cout << "Done Misc!" << std::endl; std::cout.flush();
 }
 
-const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-		float &distance, float &speedLimit, bool &isGoal)
+void LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+		float &distance, float &speedLimit, bool &isGoal,
+		const LOSMNode *&result, const LOSMNode *&resultStep)
 {
 	// Update the distance and time.
 	const LOSMEdge *edge = nullptr;
@@ -449,7 +470,9 @@ const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *cur
 
 	// Stop once an intersection or a dead end has been found.
 	if (current->get_degree() != 2) {
-		return current;
+		result = current;
+		resultStep = previous;
+		return;
 	}
 
 	// Keep going by traversing the neighbor which is not 'previous'.
@@ -457,9 +480,9 @@ const LOSMNode *LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *cur
 	losm->get_neighbors(current, neighbors);
 
 	if (neighbors[0] == previous) {
-		return map_directed_path(losm, neighbors[1], current, distance, speedLimit, isGoal);
+		return map_directed_path(losm, neighbors[1], current, distance, speedLimit, isGoal, result, resultStep);
 	} else {
-		return map_directed_path(losm, neighbors[0], current, distance, speedLimit, isGoal);
+		return map_directed_path(losm, neighbors[0], current, distance, speedLimit, isGoal, result, resultStep);
 	}
 }
 

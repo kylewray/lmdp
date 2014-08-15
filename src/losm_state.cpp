@@ -35,7 +35,8 @@ std::unordered_map<const LOSMNode *,
 
 LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, unsigned int tirednessLevel,
 		bool autonomyEnabled, float travelDistance, float travelSpeedLimit,
-		bool isGoalState, bool isAutonomyCapableState)
+		bool isGoalState, bool isAutonomyCapableState,
+		const LOSMNode *currentStepNode, const LOSMNode *previousStepNode)
 {
 	current = currentNode;
 	previous = previousNode;
@@ -50,6 +51,9 @@ LOSMState::LOSMState(const LOSMNode *currentNode, const LOSMNode *previousNode, 
 	speedLimit = travelSpeedLimit;
 	isGoal = isGoalState;
 	isAutonomyCapable = isAutonomyCapableState;
+
+	currentStep = currentStepNode;
+	previousStep = previousStepNode;
 }
 
 LOSMState::LOSMState(const LOSMState &other)
@@ -110,6 +114,16 @@ bool LOSMState::is_autonomy_capable() const
 	return isAutonomyCapable;
 }
 
+const LOSMNode *LOSMState::get_current_step() const
+{
+	return currentStep;
+}
+
+const LOSMNode *LOSMState::get_previous_step() const
+{
+	return previousStep;
+}
+
 State &LOSMState::operator=(const State &other)
 {
 	const LOSMState *state = dynamic_cast<const LOSMState *>(&other);
@@ -122,12 +136,16 @@ State &LOSMState::operator=(const State &other)
 
 	current = state->current;
 	previous = state->previous;
+
 	tiredness = state->tiredness;
 	autonomy = state->autonomy;
 	distance = state->distance;
 	speedLimit = state->speedLimit;
 	isGoal = state->isGoal;
 	isAutonomyCapable = state->isAutonomyCapable;
+
+	currentStep = state->currentStep;
+	previousStep = state->previousStep;
 
 	return *this;
 }

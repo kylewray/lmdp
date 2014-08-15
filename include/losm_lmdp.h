@@ -119,9 +119,12 @@ private:
 	 * @param	distance		The distance (mi) traveled so far.
 	 * @param	speedLimit		The weighted average speed limit (mi / h) traveled so far.
 	 * @param	isGoal			If this is a primary goal state or not.
+	 * @param	result			The resultant node of this computation.
+	 * @param	resultStep		The previous node away from the resultant node of this computation.
 	 */
-	const LOSMNode *map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-			float &distance, float &speedLimit, bool &isGoal);
+	void map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+			float &distance, float &speedLimit, bool &isGoal,
+			const LOSMNode *&result, const LOSMNode *&resultStep);
 
 	/**
 	 * Distance from a point to a line formed by two points.
