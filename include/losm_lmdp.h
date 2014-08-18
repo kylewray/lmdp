@@ -29,6 +29,7 @@
 
 #include "../../librbr/librbr/include/core/states/state.h"
 #include "../../librbr/librbr/include/core/actions/action.h"
+#include "../../librbr/librbr/include/core/policy/policy_map.h"
 
 #include "../../losm/losm/include/losm.h"
 
@@ -73,6 +74,13 @@ public:
 	 * (2, 1) for all states with a tired driver.
 	 */
 	void set_tiredness_conditional_preference();
+
+	/**
+	 * Save a PolicyMap to the custom format required by the visualizer. This assumes infinite horizon.
+	 * @param	filename	The name of the file to save.
+	 * @return	Returns true if an error arose, and false otherwise.
+	 */
+	bool save_policy(const PolicyMap *policy, std::string filename) const;
 
 private:
 	/**
@@ -139,15 +147,21 @@ private:
 	float point_to_line_distance(float x0, float y0, float x1, float y1, float x2, float y2);
 
 	/**
+	 * The LOSM object which holds the graph structure. All the nodes are managed by this object.
+	 */
+	LOSM *losm;
+
+	/**
 	 * A helper hash which maps the combination of two LOSMNode pointers to an edge.
 	 * This is used to quickly reference the edges from the combination of LOSMNode UIDs.
 	 */
 	std::unordered_map<unsigned int, std::unordered_map<unsigned int, const LOSMEdge *> > edgeHash;
 
 	/**
-	 * A map of possible successors from an action. Used to create videos.
+	 * A map of the successor for taking an action, in which we ignore the tiredness value of
+	 * the successor state. Used to save a policy for the visualizer.
 	 */
-//	std::unordered_map<const LOSMNode *, std::unordered_map<const Action *, std::vector<const LOSMNode *> > > successors;
+	std::unordered_map<const LOSMState *, std::unordered_map<unsigned int, const LOSMState *> > successors;
 
 };
 

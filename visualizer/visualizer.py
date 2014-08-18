@@ -28,12 +28,19 @@ import sdl2.sdlgfx
 
 import math
 
+from policy import *
+
 import sys
 sys.path.append("../../losm/losm_converter")
 
 from losm_converter import *
 from losm_objects import *
 
+
+NUM_TIREDNESS_LEVELS = 2
+
+# This is for clicking nodes via mouse interaction: radial distance in pixels squared.
+STATE_NODE_DISTANCE_THRESHOLD =  30 ** 2
 
 class LMDPVisualizer:
     """ Provide a graphical visualization of the LOSM objects and the policy produced
@@ -52,6 +59,7 @@ class LMDPVisualizer:
                 policyFile  -- The policy file to load.
         """
 
+        # Important: This must match 'maxSize' because <reasons></reasons>.
         self.width = 1920
         self.height = 1200
 
@@ -63,8 +71,18 @@ class LMDPVisualizer:
 
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
+        self.mousePosition = {'x': 0, 'y': 0}
 
+        self.policyColor = sdl2.ext.Color(0, 220, 0)
         self.highlight = highlight
+
+        self.initialState = None
+        self.goalState = None
+        self.tiredness = 0
+        self.autonomy = False
+
+        self.stateNodes = list()
+        self.path = {'tiredness': 0, 'autonomy': False}
 
         self.losm = None
         if filePrefix != None:
@@ -86,7 +104,7 @@ class LMDPVisualizer:
 
         self._compute_bounds()
         self._adjust_nodes_and_landmarks()
-        self._create_uid_to_node_dict()
+        self._create_useful_objects()
 
 
     def _compute_bounds(self):
@@ -148,10 +166,14 @@ class LMDPVisualizer:
             obj.y -= self.vheight / 2
 
 
-    def _create_uid_to_node_dict(self):
-        """ Create the UID to LOSMNode dictionary for quick edge rendering. """
+    def _create_useful_objects(self):
+        """ Create the useful objects. This includes a UID to LOSMNode dictionary
+            for quick edge rendering. Also, a state nodes list, consisting of all
+            nodes with a degree not equal to 2.
+        """
 
         self.uidToNode = {node.uid: node for node in self.losm.nodes}
+        self.stateNodes = [node for node in self.losm.nodes if node.degree != 2]
 
 
     def load_policy(self, policyFile):
@@ -161,7 +183,7 @@ class LMDPVisualizer:
                 policyFile -- The policy file to load.
         """
 
-        pass
+        self.policy = Policy(policyFile)
 
 
     def execute(self):
@@ -191,7 +213,10 @@ class LMDPVisualizer:
 
             renderer.color = sdl2.ext.Color(230, 230, 220)
             renderer.clear()
+
             self._render_map(renderer)
+            self._render_policy(renderer)
+
             renderer.present()
 
         sdl2.ext.quit()
@@ -241,6 +266,43 @@ class LMDPVisualizer:
             if activateCamera:
                 self.camera['original'] = self.camera['scale']
                 self.camera['timer'] = 0.0
+
+            hashID = None
+
+            if event.key.keysym.sym == sdl2.SDLK_q:
+                hashID = 'initPrev'
+            elif event.key.keysym.sym == sdl2.SDLK_w:
+                hashID = 'initCur'
+            elif event.key.keysym.sym == sdl2.SDLK_e:
+                hashID = 'goalPrev'
+            elif event.key.keysym.sym == sdl2.SDLK_r:
+                hashID = 'goalCur'
+
+            if hashID != None:
+                for node in self.stateNodes:
+                    loc = self._camera(node.x, node.y)
+                    if (loc[0] - self.mousePosition['x']) ** 2 + \
+                            (loc[1] - self.mousePosition['y']) ** 2 < \
+                            STATE_NODE_DISTANCE_THRESHOLD:
+                        print("Set %s to node %i." % (hashID, node.uid))
+                        self.path[hashID] = node.uid
+                        break
+
+            if event.key.keysym.sym == sdl2.SDLK_t:
+                self.path['tiredness'] = int(not self.path['tiredness'])
+            elif event.key.keysym.sym == sdl2.SDLK_y:
+                self.path['autonomy'] = not self.path['autonomy']
+
+            elif event.key.keysym.sym == sdl2.SDLK_RETURN:
+                try:
+                    initialState = (self.path['initPrev'], self.path['initCur'],
+                                    self.path['tiredness'], self.path['autonomy'])
+                    goalState = (self.path['goalPrev'], self.path['goalCur'],
+                                self.path['autonomy'])
+                    self.policy.set_path_scenario(initialState, goalState)
+                except KeyError:
+                    print("Failed due to missing state (initial or goal) definition.")
+                    pass
 
 
     def _check_mouse(self, event):
@@ -297,6 +359,8 @@ class LMDPVisualizer:
             self.mouseDrag['x'] = x
             self.mouseDrag['y'] = y
 
+        self.mousePosition['x'] = x
+        self.mousePosition['y'] = y
 
     def _update_camera(self):
         """ Update the camera animations. """
@@ -313,6 +377,21 @@ class LMDPVisualizer:
             self.camera['scale'] = self.camera['original'] + remaining * sigmoid
 
 
+    def _camera(self, x, y):
+        """ Transform an (x, y) coordinate following the camera.
+
+            Parameters:
+                x -- The x-axis location.
+                y -- The y-axis location.
+
+            Returns:
+                A list corresponding to the adjusted (x, y) coordinate.
+        """
+
+        return [int(self.camera['scale'] * (x + self.camera['x']) + self.vwidth / 2),
+                int(self.camera['scale'] * (y + self.camera['y']) + self.vheight / 2)]
+
+
     def _render_map(self, renderer):
         """ Render the map to the window.
 
@@ -324,10 +403,7 @@ class LMDPVisualizer:
             n1 = self.uidToNode[edge.uid1]
             n2 = self.uidToNode[edge.uid2]
 
-            line = [int(self.camera['scale'] * (n1.x + self.camera['x']) + self.vwidth / 2),
-                    int(self.camera['scale'] * (n1.y + self.camera['y']) + self.vheight / 2),
-                    int(self.camera['scale'] * (n2.x + self.camera['x']) + self.vwidth / 2),
-                    int(self.camera['scale'] * (n2.y + self.camera['y']) + self.vheight / 2)]
+            line = self._camera(n1.x, n1.y) + self._camera(n2.x, n2.y)
 
             try:
                 renderer.color = self.highlight[edge.name]
@@ -346,10 +422,7 @@ class LMDPVisualizer:
 
         #for obj in self.losm.landmarks:
         for obj in self.losm.nodes + self.losm.landmarks:
-            r = (int(self.camera['scale'] * (obj.x + self.camera['x']) + self.vwidth / 2 - self.markerSize / 2),
-                 int(self.camera['scale'] * (obj.y + self.camera['y']) + self.vheight / 2 - self.markerSize / 2),
-                 int(self.markerSize),
-                 int(self.markerSize))
+            r = self._camera(obj.x, obj.y) + [int(self.markerSize), int(self.markerSize)]
 
             try:
                 renderer.color = self.highlight[obj.name]
@@ -375,8 +448,52 @@ class LMDPVisualizer:
                 #if obj.uid == 66639588 or obj.uid == 66661455:
                 #if obj.uid == 66759366 or obj.uid == 66757758:
                 #if obj.uid == 2518152976 or obj.uid == 2518152981:
-                if obj.uid == 66662044 or obj.uid == 66686778:
-                    renderer.draw_rect([r])
+                #if obj.uid == 66696544 or obj.uid == 66621381 or \
+                #    obj.uid == 66757197 or obj.uid == 66703862:
+                #    renderer.draw_rect([r])
+                pass
+
+
+    def _render_policy(self, renderer):
+        """ Render the policy on the map.
+
+            Parameters:
+                renderer -- The renderer object.
+        """
+
+        if self.policy == None or not self.policy.is_path_prepared():
+            return
+
+        self.policy.reset()
+        self._render_policy_segment(renderer, self.policy.next())
+
+
+    def _render_policy_segment(self, renderer, segment):
+        """ Render a segment of the policy on the map. (Essentially the
+            arrow for a path.) This is a recursive method which renders
+            each segment and follows the policy, according to the current
+            attributes 'tiredness' and 'autonomy'.
+
+            Parameters:
+                renderer    -- The renderer object.
+                segment     -- The segment which is a policy state.
+        """
+
+        if segment == None:
+            return
+
+        # Get the nodes from the segment UIDs (integers).
+        n1 = self.uidToNode[segment[0]]
+        n2 = self.uidToNode[segment[1]]
+
+        # Render the segment's arrow.
+        line = self._camera(n1.x, n1.y) + self._camera(n2.x, n2.y)
+        renderer.color = self.policyColor
+        renderer.draw_line(line)
+
+        # Determine the next segment.
+        nextSegment = self.policy.next()
+        self._render_policy_segment(renderer, nextSegment)
 
 
 if __name__ == "__main__":
@@ -390,7 +507,7 @@ if __name__ == "__main__":
         v = LMDPVisualizer(highlight=h, filePrefix=sys.argv[1])
         v.execute()
     elif len(sys.argv) == 3:
-        v = LMDPVisualizer(filePrefix=sys.argv[1], policyFile=sys.argv[2])
+        v = LMDPVisualizer(highlight=h, filePrefix=sys.argv[1], policyFile=sys.argv[2])
         v.execute()
     else:
         print("python visualizer.py " +

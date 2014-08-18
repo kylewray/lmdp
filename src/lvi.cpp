@@ -203,7 +203,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 	for (auto s : Pj) {
 		for (auto action : *A) {
 			const Action *a = resolve(action);
-			AStar[0][s].push_back(a);
+			AStar[oj[0]][s].push_back(a);
 		}
 	}
 
@@ -237,7 +237,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			// assignment instead of the move one.
 			std::unordered_map<const State *, double> Vi;
 			for (auto s : Pj) {
-				Vi[s] = V[oj[i]][s];
+				Vi[s] = V.at(oj[i]).at(s);
 			}
 
 			// For all the states, compute V_i(s).
@@ -245,20 +245,20 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 				const Action *a = nullptr;
 
 				// Update V according to the previously converged subset of actions.
-				compute_V(S, AStar[oj[i]][s], T, Ri, h, s, V[oj[i]], Vi, a);
+				compute_V(S, AStar.at(oj[i]).at(s), T, Ri, h, s, V.at(oj[i]), Vi, a);
 
 				// Store the action taken as part of the policy. This will change all the time, especially over i, but whatever.
 				policy->set(s, a);
 
 				// Continue to compute the infinity normed difference between value functions for convergence checking.
 				if (std::fabs(V[oj[i]][s] - Vi[s]) > difference) {
-					difference = std::fabs(V[oj[i]][s] - Vi[s]);
+					difference = std::fabs(V.at(oj[i]).at(s) - Vi.at(s));
 				}
 			}
 
 			// After iterating over states, update the real V[i] for all s.
 			for (auto s : Pj) {
-				V[oj[i]][s] = Vi[s];
+				V.at(oj[i]).at(s) = Vi.at(s);
 			}
 //		}
 
@@ -266,7 +266,9 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		if (i != R->get_num_rewards() - 1) {
 			for (auto s : Pj) {
 				// Use the delta function to compute the final set of AStar[i + 1].
-				compute_A_delta(S, AStar[oj[i]][s], T, Ri, h, s, V[oj[i]], delta[oj[i]], AStar[oj[i + 1]][s]);
+				// NOTE: Intentionally, we use [s] for AStar, because this has not yet been defined for i + 1. This
+				// creates the vector for state s in place.
+				compute_A_delta(S, AStar.at(oj[i]).at(s), T, Ri, h, s, V.at(oj[i]), delta[oj[i]], AStar.at(oj[i + 1])[s]);
 			}
 		}
 
@@ -274,11 +276,11 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		for (auto s : Pj) {
 			// Also, update the maximum difference found over all partitions after the subset
 			// of states have had VI executed.
-			if (fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s)) > maxDifference) {
-				maxDifference = fabs(V[oj[i]][s] - VStar.at(oj[i]).at(s));
+			if (fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s)) > maxDifference) {
+				maxDifference = fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s));
 			}
 
-			VResult[oj[i]][s] = V[oj[i]][s];
+			VResult[oj[i]][s] = V.at(oj[i]).at(s);
 		}
 	}
 

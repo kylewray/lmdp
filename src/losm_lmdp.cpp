@@ -40,13 +40,14 @@
 #include "../../losm/losm/include/losm_exception.h"
 
 #include <iostream> // TODO: Remove me after debug is complete.
+#include <fstream>
 #include <cmath>
 #include <set>
 #include <algorithm>
 
 LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename)
 {
-	LOSM *losm = new LOSM(nodesFilename, edgesFilename, landmarksFilename);
+	losm = new LOSM(nodesFilename, edgesFilename, landmarksFilename);
 
 	create_edges_hash(losm);
 	create_states(losm);
@@ -54,12 +55,12 @@ LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::stri
 	create_state_transitions(losm);
 	create_rewards(losm);
 	create_misc(losm);
-
-	delete losm;
 }
 
 LOSMMDP::~LOSMMDP()
-{ }
+{
+	delete losm;
+}
 
 void LOSMMDP::set_slack(float d1, float d2)
 {
@@ -71,8 +72,9 @@ void LOSMMDP::set_slack(float d1, float d2)
 void LOSMMDP::set_uniform_conditional_preference()
 {
 	std::vector<const State *> p;
-	for (auto s : *((StatesMap *)states)) {
-		p.push_back(resolve(s));
+	for (auto state : *((StatesMap *)states)) {
+		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+		p.push_back(s);
 	}
 
 	partition.clear();
@@ -91,9 +93,9 @@ void LOSMMDP::set_tiredness_conditional_preference()
 	std::vector<const State *> p1;
 	std::vector<const State *> p2;
 
-	std::vector<const State *> p;
 	for (auto state : *((StatesMap *)states)) {
 		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+
 		if (s->get_tiredness() == 0) {
 			p1.push_back(s);
 		} else if (s->get_tiredness() == 1){
@@ -116,6 +118,45 @@ void LOSMMDP::set_tiredness_conditional_preference()
 	ordering.clear();
 	ordering.push_back(r1);
 	ordering.push_back(r2);
+}
+
+bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
+{
+	std::ofstream file(filename);
+	if (!file.is_open()) {
+		return true;
+	}
+
+//	for (auto state : *((StatesMap *)states)) {
+//		const State *s = resolve(state);
+//		const LOSMState *ls = static_cast<const LOSMState *>(s);
+//
+//		const Action *a = policy->get(s);
+//		const IndexedAction *ia = static_cast<const IndexedAction *>(a);
+//
+//		std::cout << ls->get_index() << ": " << ia << std::endl; std::cout.flush();
+//	}
+
+	for (auto state : *((StatesMap *)states)) {
+		const State *s = resolve(state);
+		const LOSMState *ls = static_cast<const LOSMState *>(s);
+
+		const Action *a = policy->get(s);
+		const IndexedAction *ia = static_cast<const IndexedAction *>(a);
+
+		file << ls->get_previous()->get_uid() << ",";
+		file << ls->get_current()->get_uid() << ",";
+		file << ls->get_tiredness() << ",";
+		file << ls->get_autonomy() << ",";
+
+		file << successors.at(ls).at(ia->get_index())->get_previous()->get_uid() << ",";
+		file << successors.at(ls).at(ia->get_index())->get_current()->get_uid() << ",";
+		file << successors.at(ls).at(ia->get_index())->get_tiredness() << std::endl;
+	}
+
+	file.close();
+
+	return false;
 }
 
 void LOSMMDP::create_edges_hash(LOSM *losm)
@@ -241,7 +282,6 @@ void LOSMMDP::create_states(LOSM *losm)
 			std::cout << s->get_previous()->get_uid() << " " << s->get_current()->get_uid() << " BADNESS!!!!!\n"; std::cout.flush();
 		}
 	}
-
 	//*/
 
 	std::cout << "Num States: " << ((StatesMap *)states)->get_num_states() << std::endl; std::cout.flush();
@@ -319,7 +359,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 			// from s's level of tiredness to sp's level of tiredness. Otherwise, we can assign a state transition.
 			if (p >= 0.0) {
 				stateTransitions->set(s, a, sp, p);
-//				successors[s->get_current()][a].push_back(sp->get_current());
+				successors[s][((IndexedAction *)a)->get_index()] = sp;
 			}
 		}
 
@@ -330,7 +370,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 		for (int i = index; i < (int)IndexedAction::get_num_actions(); i++) {
 			const Action *a = ((ActionsMap *)actions)->get(i);
 			stateTransitions->set(s, a, s, 1.0);
-//			successors[s->get_current()][a].push_back(s->get_current());
+			successors[s][i] = s;
 		}
 	}
 
@@ -344,7 +384,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 			double sum = 0.0;
 
-			std::cout << s->get_previous()->get_uid() << " " << s->get_current()->get_uid() << " ---- Sum is ";
+//			std::cout << s->get_previous()->get_uid() << " " << s->get_current()->get_uid() << " ---- Sum is ";
 
 			std::vector<const LOSMState *> asdf;
 
@@ -356,12 +396,12 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 				if (stateTransitions->get(s, a, sp) > 0.0) {
 					asdf.push_back(sp);
 
-					std::cout << stateTransitions->get(s, a, sp);
-					std::cout << " + ";
+//					std::cout << stateTransitions->get(s, a, sp);
+//					std::cout << " + ";
 				}
 			}
 
-			std::cout << " ==== " << sum << std::endl; std::cout.flush();
+//			std::cout << " ==== " << sum << std::endl; std::cout.flush();
 
 			if (sum > 1.00 || sum < 0.999999) {
 				std::cout << "Sum is: " << sum <<  " ... Bad State " << s->get_previous()->get_uid() << "_" << s->get_current()->get_uid() << " Action " << a->to_string();

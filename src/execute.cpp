@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	losmMDP->set_slack(10.0f, 0.5f);
+	losmMDP->set_slack(0.0f, 0.0f);
 //	losmMDP->set_uniform_conditional_preference();
 	losmMDP->set_tiredness_conditional_preference();
 
@@ -66,7 +66,9 @@ int main(int argc, char *argv[]) {
 
 	LVI solver(0.0001);
 	policy = solver.solve(losmMDP);
-	policy->save(argv[4]);
+
+	losmMDP->save_policy(policy, argv[4]);
+//	policy->save(argv[4]);
 
 	delete policy;
 	delete losmMDP;
@@ -86,7 +88,7 @@ int main(int argc, char *argv[]) {
 	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
-	gridLMDP->set_slack(0.0f, 5.0f, 0.0f);
+	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
 //	gridLMDP->set_default_conditional_preference();
 	gridLMDP->set_split_conditional_preference();
 
