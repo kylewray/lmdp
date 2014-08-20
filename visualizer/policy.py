@@ -49,7 +49,7 @@ class Policy:
         self.currentState = None
 
 
-    def _load(self, policyFile):
+    def _load_old(self, policyFile):
         """ Load the policy file provided.
 
             Parameters:

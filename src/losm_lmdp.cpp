@@ -144,14 +144,21 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
 		const Action *a = policy->get(s);
 		const IndexedAction *ia = static_cast<const IndexedAction *>(a);
 
-		file << ls->get_previous()->get_uid() << ",";
+		file << ls->get_current_step()->get_uid() << ",";
 		file << ls->get_current()->get_uid() << ",";
 		file << ls->get_tiredness() << ",";
 		file << ls->get_autonomy() << ",";
+		file << successors.at(ls).at(ia->get_index())->get_previous_step()->get_uid() << ",";
+		file << successors.at(ls).at(ia->get_index())->get_autonomy() << std::endl;
 
-		file << successors.at(ls).at(ia->get_index())->get_previous()->get_uid() << ",";
-		file << successors.at(ls).at(ia->get_index())->get_current()->get_uid() << ",";
-		file << successors.at(ls).at(ia->get_index())->get_tiredness() << std::endl;
+//		file << ls->get_previous()->get_uid() << ",";
+//		file << ls->get_current()->get_uid() << ",";
+//		file << ls->get_tiredness() << ",";
+//		file << ls->get_autonomy() << ",";
+
+//		file << successors.at(ls).at(ia->get_index())->get_previous()->get_uid() << ",";
+//		file << successors.at(ls).at(ia->get_index())->get_current()->get_uid() << ",";
+//		file << successors.at(ls).at(ia->get_index())->get_autonomy() << std::endl;
 	}
 
 	file.close();
@@ -225,7 +232,7 @@ void LOSMMDP::create_states(LOSM *losm)
 			continue;
 		}
 
-		if (speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD && distance >= AUTONOMY_DISTANCE_THRESHOLD) {
+		if (speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD) {
 			isAutonomyCapable = true;
 		}
 
@@ -326,40 +333,43 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 					std::unordered_map<unsigned int, const Action *> > > > map;
 		int index = 0;
 
-		for (auto nextState : *((StatesMap *)states)) {
-			const LOSMState *sp = static_cast<const LOSMState *>(resolve(nextState));
+		// Only set transitions if this is not a goal state. Goal states will always loop to themselves (handled at the end).
+		if (!s->is_goal()) {
+			for (auto nextState : *((StatesMap *)states)) {
+				const LOSMState *sp = static_cast<const LOSMState *>(resolve(nextState));
 
-			// If the current intersection node for current state matches the previous node for the next state,
-			// then this possibly a non-zero transition probability. It now depends on the tiredness level.
-			if (s->get_current() != sp->get_previous()) {
-				continue;
-			}
+				// If the current intersection node for current state matches the previous node for the next state,
+				// then this possibly a non-zero transition probability. It now depends on the tiredness level.
+				if (s->get_current() != sp->get_previous()) {
+					continue;
+				}
 
-			// This is a valid node. First check if a mapping already exists for taking an action at this next state.
-			const Action *a = nullptr;
-			try {
-				a = map.at(sp->get_previous()).at(sp->get_current()).at(sp->get_autonomy()).at(sp->get_uniqueness_index());
-			} catch (const std::out_of_range &err) {
-				a = ((ActionsMap *)actions)->get(index);
-				map[sp->get_previous()][sp->get_current()][sp->get_autonomy()][sp->get_uniqueness_index()] = a;
-				index++;
-			}
+				// This is a valid node. First check if a mapping already exists for taking an action at this next state.
+				const Action *a = nullptr;
+				try {
+					a = map.at(sp->get_previous()).at(sp->get_current()).at(sp->get_autonomy()).at(sp->get_uniqueness_index());
+				} catch (const std::out_of_range &err) {
+					a = ((ActionsMap *)actions)->get(index);
+					map[sp->get_previous()][sp->get_current()][sp->get_autonomy()][sp->get_uniqueness_index()] = a;
+					index++;
+				}
 
-			// Determine the probability, while verifying the state transition makes sense in terms of tiredness level.
-			double p = -1.0;
-			if (s->get_tiredness() == NUM_TIREDNESS_LEVELS - 1 && sp->get_tiredness() == NUM_TIREDNESS_LEVELS - 1) {
-				p = 1.0;
-			} else if (s->get_tiredness() == sp->get_tiredness()) {
-				p = 0.9;
-			} else if (s->get_tiredness() + 1 == sp->get_tiredness()) {
-				p = 0.1;
-			}
+				// Determine the probability, while verifying the state transition makes sense in terms of tiredness level.
+				double p = -1.0;
+				if (s->get_tiredness() == NUM_TIREDNESS_LEVELS - 1 && sp->get_tiredness() == NUM_TIREDNESS_LEVELS - 1) {
+					p = 1.0;
+				} else if (s->get_tiredness() == sp->get_tiredness()) {
+					p = 0.9;
+				} else if (s->get_tiredness() + 1 == sp->get_tiredness()) {
+					p = 0.1;
+				}
 
-			// If no probability was assigned, it means that while there is an action, it is impossible to transition
-			// from s's level of tiredness to sp's level of tiredness. Otherwise, we can assign a state transition.
-			if (p >= 0.0) {
-				stateTransitions->set(s, a, sp, p);
-				successors[s][((IndexedAction *)a)->get_index()] = sp;
+				// If no probability was assigned, it means that while there is an action, it is impossible to transition
+				// from s's level of tiredness to sp's level of tiredness. Otherwise, we can assign a state transition.
+				if (p >= 0.0) {
+					stateTransitions->set(s, a, sp, p);
+					successors[s][((IndexedAction *)a)->get_index()] = sp;
+				}
 			}
 		}
 
@@ -443,10 +453,16 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// Check if this is a self-transition, which essentially yields a
 					// large negative reward.
 					if (s == sp) {
-						float floatMaxCuda = -1.0; // -1e+35;
+						// Goal states always transition to themselves (absorbing), with zero reward.
+						if (s->is_goal()) {
+							timeReward->set(s, a, s, 0.0);
+							autonomyReward->set(s, a, s, 0.0);
+						} else {
+							float floatMaxCuda = -1.0; // -1e+35;
 
-						timeReward->set(s, a, s, floatMaxCuda);
-						autonomyReward->set(s, a, s, floatMaxCuda);
+							timeReward->set(s, a, s, floatMaxCuda);
+							autonomyReward->set(s, a, s, floatMaxCuda);
+						}
 
 						continue;
 					}
@@ -456,7 +472,11 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// tiredness of the driver.
 					if (sp->get_autonomy()) {
 						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
-						autonomyReward->set(s, a, sp, 1.0);
+						if (sp->get_tiredness() > 0) {
+							autonomyReward->set(s, a, sp, 1.0);
+						} else {
+							autonomyReward->set(s, a, sp, 0.5);
+						}
 					} else {
 						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
 						autonomyReward->set(s, a, sp, 0.0);

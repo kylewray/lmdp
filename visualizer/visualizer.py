@@ -26,7 +26,9 @@ import sdl2
 import sdl2.ext
 import sdl2.sdlgfx
 
+import ctypes
 import math
+import numpy as np
 
 from policy import *
 
@@ -41,6 +43,11 @@ NUM_TIREDNESS_LEVELS = 2
 
 # This is for clicking nodes via mouse interaction: radial distance in pixels squared.
 STATE_NODE_DISTANCE_THRESHOLD =  30 ** 2
+
+RENDER_NORMAL_LINES = False
+
+AUTONOMY_SPEED_LIMIT_THRESHOLD = 30
+
 
 class LMDPVisualizer:
     """ Provide a graphical visualization of the LOSM objects and the policy produced
@@ -66,23 +73,21 @@ class LMDPVisualizer:
         self.vwidth = maxSize
         self.vheight = maxSize
 
-        self.roadWidth = 5
+        self.roadLineWidth = 20
         self.markerSize = 20
 
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
         self.mousePosition = {'x': 0, 'y': 0}
 
-        self.policyColor = sdl2.ext.Color(0, 220, 0)
+        self.policyLineWidth = 10
+        self.policyOffset = 2.5
         self.highlight = highlight
 
-        self.initialState = None
-        self.goalState = None
         self.tiredness = 0
         self.autonomy = False
 
         self.stateNodes = list()
-        self.path = {'tiredness': 0, 'autonomy': False}
 
         self.losm = None
         if filePrefix != None:
@@ -183,7 +188,26 @@ class LMDPVisualizer:
                 policyFile -- The policy file to load.
         """
 
-        self.policy = Policy(policyFile)
+        #self.policy = Policy(policyFile)
+
+        self.policy = [[list() for j in range(2)] for i in range(NUM_TIREDNESS_LEVELS)]
+
+        with open(policyFile, 'r') as f:
+            reader = csv.reader(f, delimiter=',')
+
+            for row in reader:
+                if len(row) != 6:
+                    print("Failed to parse 6 arguments for policy line: '" + \
+                        ",".join(row) + "'.")
+                    break
+
+                currentTiredness = int(row[2])
+                currentAutonomy = (row[3] == '1')
+
+                uids = (int(row[0]), int(row[1]), int(row[4]))
+                nextAutonomy = (row[5] == '1')
+
+                self.policy[currentTiredness][currentAutonomy] += [(uids, nextAutonomy)]
 
 
     def execute(self):
@@ -267,42 +291,51 @@ class LMDPVisualizer:
                 self.camera['original'] = self.camera['scale']
                 self.camera['timer'] = 0.0
 
-            hashID = None
+            #hashID = None
+
+            #if event.key.keysym.sym == sdl2.SDLK_q:
+            #    hashID = 'initPrev'
+            #elif event.key.keysym.sym == sdl2.SDLK_w:
+            #    hashID = 'initCur'
+            #elif event.key.keysym.sym == sdl2.SDLK_e:
+            #    hashID = 'goalPrev'
+            #elif event.key.keysym.sym == sdl2.SDLK_r:
+            #    hashID = 'goalCur'
+
+            #if hashID != None:
+            #    for node in self.stateNodes:
+            #        loc = self._camera(node.x, node.y)
+            #        if (loc[0] - self.mousePosition['x']) ** 2 + \
+            #                (loc[1] - self.mousePosition['y']) ** 2 < \
+            #                STATE_NODE_DISTANCE_THRESHOLD:
+            #            print("Set %s to node %i." % (hashID, node.uid))
+            #            self.path[hashID] = node.uid
+            #            break
 
             if event.key.keysym.sym == sdl2.SDLK_q:
-                hashID = 'initPrev'
+                self.tiredness = int(not self.tiredness)
+                if self.tiredness == 0:
+                    print("Tiredness Disabled. Driver is awake.")
+                else:
+                    print("Tiredness Enabled. Driver is tired.")
+
             elif event.key.keysym.sym == sdl2.SDLK_w:
-                hashID = 'initCur'
-            elif event.key.keysym.sym == sdl2.SDLK_e:
-                hashID = 'goalPrev'
-            elif event.key.keysym.sym == sdl2.SDLK_r:
-                hashID = 'goalCur'
+                self.autonomy = int(not self.autonomy)
+                if self.autonomy:
+                    print("Autonomy Enabled. Car is driving.")
+                else:
+                    print("Autonomy Disabled. Car is not driving.")
 
-            if hashID != None:
-                for node in self.stateNodes:
-                    loc = self._camera(node.x, node.y)
-                    if (loc[0] - self.mousePosition['x']) ** 2 + \
-                            (loc[1] - self.mousePosition['y']) ** 2 < \
-                            STATE_NODE_DISTANCE_THRESHOLD:
-                        print("Set %s to node %i." % (hashID, node.uid))
-                        self.path[hashID] = node.uid
-                        break
-
-            if event.key.keysym.sym == sdl2.SDLK_t:
-                self.path['tiredness'] = int(not self.path['tiredness'])
-            elif event.key.keysym.sym == sdl2.SDLK_y:
-                self.path['autonomy'] = not self.path['autonomy']
-
-            elif event.key.keysym.sym == sdl2.SDLK_RETURN:
-                try:
-                    initialState = (self.path['initPrev'], self.path['initCur'],
-                                    self.path['tiredness'], self.path['autonomy'])
-                    goalState = (self.path['goalPrev'], self.path['goalCur'],
-                                self.path['autonomy'])
-                    self.policy.set_path_scenario(initialState, goalState)
-                except KeyError:
-                    print("Failed due to missing state (initial or goal) definition.")
-                    pass
+            #elif event.key.keysym.sym == sdl2.SDLK_RETURN:
+            #    try:
+            #        initialState = (self.path['initPrev'], self.path['initCur'],
+            #                        self.path['tiredness'], self.path['autonomy'])
+            #        goalState = (self.path['goalPrev'], self.path['goalCur'],
+            #                    self.path['autonomy'])
+            #        self.policy.set_path_scenario(initialState, goalState)
+            #    except KeyError:
+            #        print("Failed due to missing state (initial or goal) definition.")
+            #        pass
 
 
     def _check_mouse(self, event):
@@ -362,6 +395,7 @@ class LMDPVisualizer:
         self.mousePosition['x'] = x
         self.mousePosition['y'] = y
 
+
     def _update_camera(self):
         """ Update the camera animations. """
 
@@ -405,16 +439,31 @@ class LMDPVisualizer:
 
             line = self._camera(n1.x, n1.y) + self._camera(n2.x, n2.y)
 
+            if max(line[0], line[2]) < 0 or \
+                    max(line[1], line[3]) < 0 or \
+                    min(line[0], line[2]) >= self.width or \
+                    min(line[1], line[3]) >= self.height:
+                continue
+
+            #print(edge)
+
             try:
                 renderer.color = self.highlight[edge.name]
-            except:
-                renderer.color = sdl2.ext.Color(255, 255, 255)
-            renderer.draw_line(line)
+            except KeyError:
+                if edge.speedLimit > AUTONOMY_SPEED_LIMIT_THRESHOLD:
+                    try:
+                        renderer.color = h['autonomyCapableColor']
+                    except KeyError:
+                        renderer.color = sdl2.ext.Color(255, 255, 255)
+                else:
+                    renderer.color = sdl2.ext.Color(255, 255, 255)
 
-            # Note: Either do above or the one below... Don't do both.
-            sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
+            if RENDER_NORMAL_LINES:
+                renderer.draw_line(line)
+            else:
+                sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
                                         line[0], line[1], line[2], line[3],
-                                        self.roadWidth,
+                                        self.roadLineWidth,
                                         renderer.color.r,
                                         renderer.color.g,
                                         renderer.color.b,
@@ -423,6 +472,12 @@ class LMDPVisualizer:
         #for obj in self.losm.landmarks:
         for obj in self.losm.nodes + self.losm.landmarks:
             r = self._camera(obj.x, obj.y) + [int(self.markerSize), int(self.markerSize)]
+
+            if max(r[0], r[0] + r[2]) < 0 or \
+                    max(r[1], r[1] + r[3]) < 0 or \
+                    min(r[0], r[0] + r[2]) >= self.width or \
+                    min(r[1], r[1] + r[3]) >= self.height:
+                continue
 
             try:
                 renderer.color = self.highlight[obj.name]
@@ -442,15 +497,8 @@ class LMDPVisualizer:
                                         renderer.color.b,
                                         renderer.color.a)
             except:
-                #if obj.uid == 2518152976 or obj.uid == 2518152981:
                 #if obj.uid == 66662044 or obj.uid == 66615634:
-                #if obj.uid == 66766106 or obj.uid == 66768014:
-                #if obj.uid == 66639588 or obj.uid == 66661455:
-                #if obj.uid == 66759366 or obj.uid == 66757758:
-                #if obj.uid == 2518152976 or obj.uid == 2518152981:
-                #if obj.uid == 66696544 or obj.uid == 66621381 or \
-                #    obj.uid == 66757197 or obj.uid == 66703862:
-                #    renderer.draw_rect([r])
+                #renderer.draw_rect([r])
                 pass
 
 
@@ -461,47 +509,129 @@ class LMDPVisualizer:
                 renderer -- The renderer object.
         """
 
-        if self.policy == None or not self.policy.is_path_prepared():
+        if self.policy == None:
             return
 
-        self.policy.reset()
-        self._render_policy_segment(renderer, self.policy.next())
+        for action in self.policy[self.tiredness][self.autonomy]:
+            enableAutonomy = action[1]
+
+            node = [np.array(self._camera(self.uidToNode[uid].x, self.uidToNode[uid].y), \
+                        dtype=float) \
+                        for uid in action[0]]
+
+            alpha = node[0] - node[1]
+            if alpha[0] != 0 or alpha[1] != 0:
+                alpha /= np.linalg.norm(alpha)
+                alpha *= self.policyOffset * self.camera['scale']
+
+            beta = node[2] - node[1]
+            if beta[0] != 0 or beta[1] != 0:
+                beta /= np.linalg.norm(beta)
+                beta *= self.policyOffset * self.camera['scale']
+
+            line = list(node[1] + alpha * 2) + \
+                    list(node[1] + alpha) + \
+                    list(node[1] + alpha + beta)
+            line = [int(l) for l in line]
+
+            renderer.color = self.highlight['policyColor']
 
 
-    def _render_policy_segment(self, renderer, segment):
-        """ Render a segment of the policy on the map. (Essentially the
-            arrow for a path.) This is a recursive method which renders
-            each segment and follows the policy, according to the current
-            attributes 'tiredness' and 'autonomy'.
+            # ----- BEZIER CURVE VERSION -----
 
-            Parameters:
-                renderer    -- The renderer object.
-                segment     -- The segment which is a policy state.
-        """
+            #xvals = [line[0], line[2], line[4]]
+            #xvals = (ctypes.c_short * len(xvals))(*xvals)
 
-        if segment == None:
-            return
+            #yvals = [line[1], line[3], line[5]]
+            #yvals = (ctypes.c_short * len(yvals))(*yvals)
 
-        # Get the nodes from the segment UIDs (integers).
-        n1 = self.uidToNode[segment[0]]
-        n2 = self.uidToNode[segment[1]]
+            #sdl2.sdlgfx.bezierRGBA(renderer.renderer,
+            #                        ctypes.cast(xvals, ctypes.POINTER(ctypes.c_short)),
+            #                        ctypes.cast(yvals, ctypes.POINTER(ctypes.c_short)),
+            #                        3,
+            #                        10,
+            #                        renderer.color.r,
+            #                        renderer.color.g,
+            #                        renderer.color.b,
+            #                        renderer.color.a)
 
-        # Render the segment's arrow.
-        line = self._camera(n1.x, n1.y) + self._camera(n2.x, n2.y)
-        renderer.color = self.policyColor
-        renderer.draw_line(line)
+            # ----- BEZIER CURVE VERSION -----
 
-        # Determine the next segment.
-        nextSegment = self.policy.next()
-        self._render_policy_segment(renderer, nextSegment)
+
+            line = list(node[1] + alpha * 2) + list(node[1] + alpha)
+            line = [int(l) for l in line]
+
+            if enableAutonomy:
+                renderer.color = self.highlight['policyColorAutonomy']
+            else:
+                renderer.color = self.highlight['policyColor']
+
+            if RENDER_NORMAL_LINES:
+                renderer.draw_line(line)
+            else:
+                sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
+                                        line[0], line[1], line[2], line[3],
+                                        self.policyLineWidth,
+                                        renderer.color.r,
+                                        renderer.color.g,
+                                        renderer.color.b,
+                                        renderer.color.a)
+
+            line = list(node[1] + alpha) + list(node[1] + alpha + beta)
+            line = [int(l) for l in line]
+
+            #renderer.color = sdl2.ext.Color(0, 0, 150)
+
+            if RENDER_NORMAL_LINES:
+                renderer.draw_line(line)
+            else:
+                sdl2.sdlgfx.thickLineRGBA(renderer.renderer,
+                                        line[0], line[1], line[2], line[3],
+                                        self.policyLineWidth,
+                                        renderer.color.r,
+                                        renderer.color.g,
+                                        renderer.color.b,
+                                        renderer.color.a)
+
+            trigon = node[1] - node[2]
+            if trigon[0] != 0 or trigon[1] != 0:
+                trigon /= np.linalg.norm(trigon)
+                trigon *= self.camera['scale']
+            t1 = math.pi / 4.0
+            t2 = -t1
+
+            a = node[1] + alpha + beta
+            a = [int(a[0]), int(a[1])]
+
+            b = [0, 0]
+            b[0] = int(a[0] + math.cos(t1) * trigon[0] - math.sin(t1) * trigon[1])
+            b[1] = int(a[1] + math.sin(t1) * trigon[0] + math.cos(t1) * trigon[1])
+
+            c = [0, 0]
+            c[0] = int(a[0] + math.cos(t2) * trigon[0] - math.sin(t2) * trigon[1])
+            c[1] = int(a[1] + math.sin(t2) * trigon[0] + math.cos(t2) * trigon[1])
+
+            a = [int(a[0] + beta[0]), int(a[1] + beta[1])]
+
+            sdl2.sdlgfx.filledTrigonRGBA(renderer.renderer,
+                                    a[0], a[1], b[0], b[1], c[0], c[1],
+                                    renderer.color.r,
+                                    renderer.color.g,
+                                    renderer.color.b,
+                                    renderer.color.a)
 
 
 if __name__ == "__main__":
     # --- DEBUG ---
     h = dict()
-    h['Gray Street'] = sdl2.ext.Color(200, 0, 0)
-    h['Rao\'s cafe'] = sdl2.ext.Color(0, 200, 0)
-    h['Amherst coffee'] = sdl2.ext.Color(0, 0, 200)
+
+    h['policyColor'] = sdl2.ext.Color(25, 150, 25)
+    h['policyColorAutonomy'] = sdl2.ext.Color(150, 25, 150)
+    h['autonomyCapableColor'] = sdl2.ext.Color(240, 240, 255)
+
+    #h['Gray Street'] = sdl2.ext.Color(200, 0, 0)
+    #h['Rao\'s cafe'] = sdl2.ext.Color(0, 200, 0)
+    #h['Amherst coffee'] = sdl2.ext.Color(0, 0, 200)
 
     if len(sys.argv) == 2:
         v = LMDPVisualizer(highlight=h, filePrefix=sys.argv[1])
