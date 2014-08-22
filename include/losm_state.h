@@ -30,13 +30,6 @@
 
 #include "../../losm/losm/include/losm_node.h"
 
-#define NUM_TIREDNESS_LEVELS 2
-
-#define AUTONOMY_SPEED_LIMIT_THRESHOLD 30.0
-#define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
-
-#define GOAL_STREET_NAME "Gray Street"
-
 /**
  * A custom LSOM state class which holds the two LOSM nodes (in order) and other relevant information.
  */

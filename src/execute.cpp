@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	losmMDP->set_slack(0.0f, 0.0f);
+	losmMDP->set_slack(5.0f, 0.0f);
 //	losmMDP->set_uniform_conditional_preference();
 	losmMDP->set_tiredness_conditional_preference();
 

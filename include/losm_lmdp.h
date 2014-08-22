@@ -38,6 +38,15 @@
 #include <vector>
 #include <unordered_map>
 
+#define NUM_TIREDNESS_LEVELS 2
+
+#define AUTONOMY_SPEED_LIMIT_THRESHOLD 30.0
+#define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
+#define NON_AUTONOMY_PENALTY_ADJUSTMENT 10.0
+
+#define GOAL_NODE_1 66757197
+#define GOAL_NODE_2 66703862
+
 /**
  * A Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences for a LOSM object.
  */
@@ -126,12 +135,11 @@ private:
 	 * @param	previous		The previous node.
 	 * @param	distance		The distance (mi) traveled so far.
 	 * @param	speedLimit		The weighted average speed limit (mi / h) traveled so far.
-	 * @param	isGoal			If this is a primary goal state or not.
 	 * @param	result			The resultant node of this computation.
 	 * @param	resultStep		The previous node away from the resultant node of this computation.
 	 */
 	void map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-			float &distance, float &speedLimit, bool &isGoal,
+			float &distance, float &speedLimit,
 			const LOSMNode *&result, const LOSMNode *&resultStep);
 
 	/**

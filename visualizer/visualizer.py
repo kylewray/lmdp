@@ -29,6 +29,7 @@ import sdl2.sdlgfx
 import ctypes
 import math
 import numpy as np
+import random as rnd
 
 from policy import *
 
@@ -88,6 +89,11 @@ class LMDPVisualizer:
         self.autonomy = False
 
         self.stateNodes = list()
+        self.showStateNodes = False
+        self.selectedNodes = set()
+
+        self.elements = list()
+        self.elementResolution = 12  # Note: How many sub-divisions, i.e., scale as above.
 
         self.losm = None
         if filePrefix != None:
@@ -218,8 +224,9 @@ class LMDPVisualizer:
         window = sdl2.ext.Window("LMDP Visualizer", size=(self.width, self.height))
         window.show()
 
-        #self._create_map_texture()
         renderer = sdl2.ext.Renderer(window)
+
+        targetTextures = self._create_map_texture(renderer)
 
         running = True
         while running:
@@ -238,24 +245,80 @@ class LMDPVisualizer:
             renderer.color = sdl2.ext.Color(230, 230, 220)
             renderer.clear()
 
-            self._render_map(renderer)
-            self._render_policy(renderer)
+            self._render_map_texture(renderer)
+            #self._render_map(renderer)
+            #self._render_policy(renderer)
 
             renderer.present()
+
+        # Free all the textures.
+        for i, element in enumerate(self.elements):
+            if i % self.elementResolution == 0:
+                print("Freeing map texture %i-%i out of %i." % \
+                        (i, i + self.elementResolution,
+                        self.elementResolution ** 2))
+            sdl2.SDL_DestroyTexture(element[4])
 
         sdl2.ext.quit()
 
 
-#    def _create_map_texture(self):
-#        """ Create the map texture to improve rendering speed. """
-#
-#        mapTexture = sdl2.ext.TextureSprite()
-#
-#        renderer = sdl2.ext.Renderer(mapTexture)
-#        renderer.color = sdl2.ext.Color(0, 0, 0)
-#        renderer.clear()
-#        self._render_map(renderer)
-#        renderer.present()
+    def _create_map_texture(self, renderer):
+        """ Create the map texture to improve rendering speed.
+
+            Parameters:
+                renderer -- The renderer object.
+        """
+
+        self.elements = list()
+
+        elementWidth = int(self.width / self.elementResolution)
+        elementHeight = int(self.height / self.elementResolution)
+
+        offsetX = self.vwidth / 2
+        offsetY = self.vheight / 2
+
+        for x in range(self.elementResolution):
+            print("Creating map textures %i-%i out of %i." % \
+                    (x * self.elementResolution,
+                    (x + 1) * self.elementResolution,
+                    self.elementResolution ** 2))
+
+            for y in range(self.elementResolution):
+                textureElement = sdl2.SDL_CreateTexture(renderer.renderer,
+                                                sdl2.SDL_PIXELFORMAT_RGBA8888,
+                                                sdl2.SDL_TEXTUREACCESS_TARGET,
+                                                self.width,
+                                                self.height)
+
+                sdl2.SDL_SetRenderTarget(renderer.renderer, textureElement)
+
+                renderer.color = sdl2.ext.Color(230, 230, 220)
+                #renderer.color = sdl2.ext.Color(int(rnd.random() * 255),
+                #                                int(rnd.random() * 255),
+                #                                int(rnd.random() * 255))
+
+                renderer.clear()
+
+                self.camera['scale'] = self.elementResolution
+                self.camera['x'] = -x * elementWidth + offsetX
+                self.camera['y'] = -y * elementHeight + offsetY
+
+                self._render_map(renderer)
+                self._render_policy(renderer)
+
+                renderer.present()
+
+                self.elements += [(x * elementWidth - self.vwidth / 2,
+                                    y * elementHeight - self.vheight / 2,
+                                    elementWidth,
+                                    elementHeight,
+                                    textureElement)]
+
+        self.camera['scale'] = 1
+        self.camera['x'] = 0
+        self.camera['y'] = 0
+
+        sdl2.SDL_SetRenderTarget(renderer.renderer, None)
 
 
     def _check_keyboard(self, event):
@@ -291,26 +354,8 @@ class LMDPVisualizer:
                 self.camera['original'] = self.camera['scale']
                 self.camera['timer'] = 0.0
 
-            #hashID = None
-
-            #if event.key.keysym.sym == sdl2.SDLK_q:
-            #    hashID = 'initPrev'
-            #elif event.key.keysym.sym == sdl2.SDLK_w:
-            #    hashID = 'initCur'
-            #elif event.key.keysym.sym == sdl2.SDLK_e:
-            #    hashID = 'goalPrev'
-            #elif event.key.keysym.sym == sdl2.SDLK_r:
-            #    hashID = 'goalCur'
-
-            #if hashID != None:
-            #    for node in self.stateNodes:
-            #        loc = self._camera(node.x, node.y)
-            #        if (loc[0] - self.mousePosition['x']) ** 2 + \
-            #                (loc[1] - self.mousePosition['y']) ** 2 < \
-            #                STATE_NODE_DISTANCE_THRESHOLD:
-            #            print("Set %s to node %i." % (hashID, node.uid))
-            #            self.path[hashID] = node.uid
-            #            break
+            if event.key.keysym.sym == sdl2.SDLK_s:
+                self.showStateNodes = not self.showStateNodes
 
             if event.key.keysym.sym == sdl2.SDLK_q:
                 self.tiredness = int(not self.tiredness)
@@ -325,17 +370,6 @@ class LMDPVisualizer:
                     print("Autonomy Enabled. Car is driving.")
                 else:
                     print("Autonomy Disabled. Car is not driving.")
-
-            #elif event.key.keysym.sym == sdl2.SDLK_RETURN:
-            #    try:
-            #        initialState = (self.path['initPrev'], self.path['initCur'],
-            #                        self.path['tiredness'], self.path['autonomy'])
-            #        goalState = (self.path['goalPrev'], self.path['goalCur'],
-            #                    self.path['autonomy'])
-            #        self.policy.set_path_scenario(initialState, goalState)
-            #    except KeyError:
-            #        print("Failed due to missing state (initial or goal) definition.")
-            #        pass
 
 
     def _check_mouse(self, event):
@@ -376,6 +410,21 @@ class LMDPVisualizer:
             self.mouseDrag['x'] = x
             self.mouseDrag['y'] = y
 
+        elif button == 'right' and state == 'up':
+            for node in self.losm.nodes:
+                loc = self._camera(node.x, node.y)
+
+                if (loc[0] - self.mousePosition['x']) ** 2 + \
+                        (loc[1] - self.mousePosition['y']) ** 2 < \
+                        STATE_NODE_DISTANCE_THRESHOLD:
+                    print(node)
+
+                    if node in self.selectedNodes:
+                        self.selectedNodes -= {node}
+                    else:
+                        self.selectedNodes |= {node}
+
+                    break
 
     def _mouse_motion(self, x, y):
         """ Handle the mouse motion.
@@ -426,6 +475,22 @@ class LMDPVisualizer:
                 int(self.camera['scale'] * (y + self.camera['y']) + self.vheight / 2)]
 
 
+    def _render_map_texture(self, renderer):
+        """ Render the map texture to the window.
+
+            Parameters:
+                renderer -- The renderer object.
+        """
+
+        for element in self.elements:
+            pos = self._camera(element[0], element[1])
+            r = sdl2.SDL_Rect(pos[0],
+                            pos[1],
+                            int(element[2] * self.camera['scale']),
+                            int(element[3] * self.camera['scale']))
+            sdl2.SDL_RenderCopy(renderer.renderer, element[4], None, r)
+
+
     def _render_map(self, renderer):
         """ Render the map to the window.
 
@@ -433,7 +498,14 @@ class LMDPVisualizer:
                 renderer -- The renderer object.
         """
 
-        for edge in self.losm.edges:
+        nonAutonomyEdges = [edge for edge in self.losm.edges if \
+                            edge.speedLimit < AUTONOMY_SPEED_LIMIT_THRESHOLD]
+        autonomyEdges = [edge for edge in self.losm.edges if \
+                            edge.speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD]
+
+        # Organize the rendering order to ensure the pretty autonomy roads are
+        # rendered on top of the other edges.
+        for edge in nonAutonomyEdges + autonomyEdges: #self.losm.edges:
             n1 = self.uidToNode[edge.uid1]
             n2 = self.uidToNode[edge.uid2]
 
@@ -445,12 +517,10 @@ class LMDPVisualizer:
                     min(line[1], line[3]) >= self.height:
                 continue
 
-            #print(edge)
-
             try:
                 renderer.color = self.highlight[edge.name]
             except KeyError:
-                if edge.speedLimit > AUTONOMY_SPEED_LIMIT_THRESHOLD:
+                if edge.speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD:
                     try:
                         renderer.color = h['autonomyCapableColor']
                     except KeyError:
@@ -469,7 +539,6 @@ class LMDPVisualizer:
                                         renderer.color.b,
                                         renderer.color.a)
 
-        #for obj in self.losm.landmarks:
         for obj in self.losm.nodes + self.losm.landmarks:
             r = self._camera(obj.x, obj.y) + [int(self.markerSize), int(self.markerSize)]
 
@@ -497,9 +566,19 @@ class LMDPVisualizer:
                                         renderer.color.b,
                                         renderer.color.a)
             except:
-                #if obj.uid == 66662044 or obj.uid == 66615634:
-                #renderer.draw_rect([r])
-                pass
+                if obj in self.selectedNodes or \
+                        (self.showStateNodes and obj in self.stateNodes):
+                    r[0] -= int(self.markerSize / 2)
+                    r[1] -= int(self.markerSize / 2)
+                    r[2] = r[0] + self.markerSize
+                    r[3] = r[1] + self.markerSize
+
+                    sdl2.sdlgfx.boxRGBA(renderer.renderer,
+                                        r[0], r[1], r[2], r[3],
+                                        renderer.color.r,
+                                        renderer.color.g,
+                                        renderer.color.b,
+                                        renderer.color.a)
 
 
     def _render_policy(self, renderer):

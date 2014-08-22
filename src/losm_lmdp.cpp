@@ -206,7 +206,7 @@ void LOSMMDP::create_states(LOSM *losm)
 			// This computes the distance, speed limit, etc.
 			const LOSMNode *nothing = nullptr;
 			const LOSMNode *nothingStep = nullptr;
-			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal, nothing, nothingStep);
+			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, nothing, nothingStep);
 
 			current = edge->get_node_1();
 			previous = edge->get_node_2();
@@ -220,16 +220,21 @@ void LOSMMDP::create_states(LOSM *losm)
 			// Node 1 is interesting, so find the other interesting one for Node 2.
 			current = edge->get_node_1();
 			currentStepNode = edge->get_node_2();
-			map_directed_path(losm, edge->get_node_2(), edge->get_node_1(), distance, speedLimit, isGoal, previous, previousStepNode);
+			map_directed_path(losm, edge->get_node_2(), edge->get_node_1(), distance, speedLimit, previous, previousStepNode);
 
 		} else if (edge->get_node_1()->get_degree() == 2 && edge->get_node_2()->get_degree() != 2) {
 			// Node 2 is interesting, so find the other interesting one for Node 1.
 			current = edge->get_node_2();
 			currentStepNode = edge->get_node_1();
-			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, isGoal, previous, previousStepNode);
+			map_directed_path(losm, edge->get_node_1(), edge->get_node_2(), distance, speedLimit, previous, previousStepNode);
 
 		} else {
 			continue;
+		}
+
+		if ((current->get_uid() == GOAL_NODE_1 && previous->get_uid() == GOAL_NODE_2) ||
+				(previous->get_uid() == GOAL_NODE_2 && current->get_uid() == GOAL_NODE_1)) {
+			isGoal = true;
 		}
 
 		if (speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD) {
@@ -455,10 +460,10 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					if (s == sp) {
 						// Goal states always transition to themselves (absorbing), with zero reward.
 						if (s->is_goal()) {
-							timeReward->set(s, a, s, 0.0);
+							timeReward->set(s, a, s, 1.0);
 							autonomyReward->set(s, a, s, 0.0);
 						} else {
-							float floatMaxCuda = -1.0; // -1e+35;
+							float floatMaxCuda = -1e+35;
 
 							timeReward->set(s, a, s, floatMaxCuda);
 							autonomyReward->set(s, a, s, floatMaxCuda);
@@ -470,17 +475,34 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// Enabling or disabling autonomy changes the speed of the car, but provides
 					// a positive reward for safely driving autonomously, regardless of the
 					// tiredness of the driver.
-					if (sp->get_autonomy()) {
-						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
-						if (sp->get_tiredness() > 0) {
-							autonomyReward->set(s, a, sp, 1.0);
+//					if (sp->is_goal()) {
+//						timeReward->set(s, a, sp, 1.0);
+//					} else {
+						if (sp->get_autonomy()) {
+							timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
 						} else {
-							autonomyReward->set(s, a, sp, 0.5);
+							timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
 						}
+//					}
+
+					// If the road is autonomy capable, you are not autonomous, and you are tired, then take a penalty.
+					// Otherwise, no penalty is given. In other words, you are penalized for every second spent driving
+					// manually when you are tired.
+					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
+						autonomyReward->set(s, a, sp, -1.0);
 					} else {
-						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
 						autonomyReward->set(s, a, sp, 0.0);
 					}
+
+//					if (sp->get_autonomy()) {
+//						if (sp->get_tiredness() > 0) {
+//							autonomyReward->set(s, a, sp, 1.0);
+//						} else {
+//							autonomyReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
+//						}
+//					} else {
+//						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
+//					}
 				}
 			}
 		}
@@ -501,7 +523,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 }
 
 void LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
-		float &distance, float &speedLimit, bool &isGoal,
+		float &distance, float &speedLimit,
 		const LOSMNode *&result, const LOSMNode *&resultStep)
 {
 	// Update the distance and time.
@@ -513,20 +535,6 @@ void LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const
 	}
 	speedLimit = (speedLimit * distance + edge->get_speed_limit() * edge->get_distance()) / (distance + edge->get_distance());
 	distance += edge->get_distance();
-
-	// Check if this is a goal street.
-	if (edge->get_name().compare(GOAL_STREET_NAME) == 0) {
-		isGoal = true;
-	}
-
-//	// Check if this node is nearby any landmarks (secondary goals).
-//	for (const LOSMLandmark *landmark : losm->get_landmarks()) {
-//		if (point_to_line_distance(landmark->get_x(), landmark->get_y(),
-//				current->get_x(), current->get_y(),
-//				previous->get_x(), previous->get_y()) < LANDMARK_THRESHOLD) {
-//			isSecondaryGoal = true;
-//		}
-//	}
 
 	// Stop once an intersection or a dead end has been found.
 	if (current->get_degree() != 2) {
@@ -540,9 +548,9 @@ void LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const
 	losm->get_neighbors(current, neighbors);
 
 	if (neighbors[0] == previous) {
-		return map_directed_path(losm, neighbors[1], current, distance, speedLimit, isGoal, result, resultStep);
+		return map_directed_path(losm, neighbors[1], current, distance, speedLimit, result, resultStep);
 	} else {
-		return map_directed_path(losm, neighbors[0], current, distance, speedLimit, isGoal, result, resultStep);
+		return map_directed_path(losm, neighbors[0], current, distance, speedLimit, result, resultStep);
 	}
 }
 
