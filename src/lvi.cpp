@@ -52,11 +52,13 @@
 LVI::LVI()
 {
 	epsilon = 0.001;
+	loopingVersion = false;
 }
 
-LVI::LVI(double tolerance)
+LVI::LVI(double tolerance, bool enableLooping)
 {
 	epsilon = tolerance;
+	loopingVersion = enableLooping;
 }
 
 LVI::~LVI()
@@ -103,7 +105,7 @@ PolicyMap *LVI::solve(const LMDP *lmdp)
 	if (lmdp->get_slack()->size() != R->get_num_rewards()) {
 		throw RewardException();
 	}
-	for (int i = 0; i < lmdp->get_slack()->size(); i++) {
+	for (int i = 0; i < (int)lmdp->get_slack()->size(); i++) {
 		if ((*lmdp->get_slack())[i] < 0.0) {
 			throw RewardException();
 		}
@@ -133,47 +135,134 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	std::vector<std::unordered_map<const State *, double> > V;
 	V.resize(R->get_num_rewards());
 
-	// We will want to remember the optimal possible value of a state, too.
-	std::vector<std::unordered_map<const State *, double> > VStar;
-	VStar.resize(R->get_num_rewards());
+	// We will want to remember the previous fixed values of states, too.
+	std::vector<std::unordered_map<const State *, double> > VFixed;
+	VFixed.resize(R->get_num_rewards());
 
 	// Default all values.
 	for (auto state : *S) {
 		const State *s = resolve(state);
-		for (int i = 0; i < R->get_num_rewards(); i++) {
+		for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 			V[i][s] = 0.0;
-			VStar[i][s] = 0.0;
+			VFixed[i][s] = 0.0;
 		}
 	}
 
 	// Compute the convergence criterion which follows from the proof of convergence.
 	double convergenceCriterion = epsilon * (1.0 - h->get_discount_factor()) / h->get_discount_factor();
-	double difference = convergenceCriterion + 1.0;
+	bool converged = false;
+
+	std::vector<std::vector<double> > difference;
+	difference.resize(P.size());
+	for (int j = 0; j < (int)P.size(); j++) {
+		difference[j].resize(R->get_num_rewards());
+	}
 
 	std::cout << "Starting...\n"; std::cout.flush();
 
+	// ------------------------------------------------------------------------------
+	// ------------------------------------------------------------------------------
+	// ------------------------------------------------------------------------------
+	// Print out the iteration's convergence table result.
+	printf("Iterations      ");
+	for (int j = 0; j < (int)P.size(); j++) {
+		for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+			std::cout << o[j][i] << " ";
+		}
+		if (j != (int)P.size() - 1) {
+			std::cout << "  ";
+		}
+	}
+	std::cout << "    ";
+	for (int j = 0; j < (int)P.size(); j++) {
+		for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+			printf("%-8i ", o[j][i]);
+		}
+	}
+	std::cout << std::endl; std::cout.flush();
+
+	// ------------------------------------------------------------------------------
+	// ------------------------------------------------------------------------------
+	// ------------------------------------------------------------------------------
+
+
 	// Iterate the outer loop until the convergence criterion is satisfied.
-	while (difference > convergenceCriterion) {
+	int counter = 1;
+	while (!converged) {
 		// Update VStar to the previous value of V.
 		for (auto state : *S) {
 			const State *s = resolve(state);
-			for (int i = 0; i < R->get_num_rewards(); i++) {
-				VStar[i][s] = V[i][s];
+			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+				VFixed[i][s] = V[i][s];
 			}
 		}
 
-		difference = 0.0;
-
-		std::cout << "Iterating";
+		converged = true;
 
 		// For each of the partitions, run value iteration. Each time, copy the resulting value functions.
-		for (int j = 0; j < P.size(); j++) {
-			std::cout << "."; std::cout.flush();
+		for (int j = 0; j < (int)P.size(); j++) {
+			// Reset the difference for *all* of the variables.
+			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+				difference[j][i] = 0.0;
+			}
 
-			compute_partition(S, A, T, R, s0, h, delta, P[j], o[j], VStar, V, policy, difference);
+			compute_partition(S, A, T, R, s0, h, delta, P[j], o[j], VFixed, V, policy, difference[j]);
 		}
 
-		std::cout << " Complete with Error: " << difference << std::endl; std::cout.flush();
+		// Check for convergence.
+		for (int j = 0; j < (int)P.size(); j++) {
+			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+				if (difference[j][i] > convergenceCriterion) {
+					converged = false;
+				}
+			}
+		}
+
+		// ------------------------------------------------------------------------------
+		// ------------------------------------------------------------------------------
+		// ------------------------------------------------------------------------------
+		// Print out the iteration's convergence table result.
+		printf("Iteration %-3i [ ", counter);
+
+		for (int j = 0; j < (int)P.size(); j++) {
+			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+				// NOTE: The function 'compute_partitions' places the values in order o[j][i] for 'difference'. So you
+				// do not need to adjust for it.
+				// NOTE: Some value functions in the ordering may converge before the ones before them, but this is
+				// not guaranteed. The only guarantee is that once a 'parent' has converged, its 'child' will converge.
+				// Eventually, this must include all value functions over all partitions.
+				if (difference[j][i] > convergenceCriterion) {
+					std::cout << "x ";
+				} else {
+					std::cout << "o ";
+				}
+			}
+
+			if (j != (int)P.size() - 1) {
+				std::cout << "| ";
+			}
+		}
+
+		std::cout << "]   ";
+
+		for (int j = 0; j < (int)P.size(); j++) {
+			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+				// NOTE: The function 'compute_partitions' places the values in order o[j][i] for 'difference'. So you
+				// do not need to adjust for it.
+				// NOTE: Some value functions in the ordering may converge before the ones before them, but this is
+				// not guaranteed. The only guarantee is that once a 'parent' has converged, its 'child' will converge.
+				// Eventually, this must include all value functions over all partitions.
+//				std::cout << difference[j][i] << "\t";
+				printf("%.6f ", difference[j][i]);
+			}
+		}
+		std::cout << std::endl; std::cout.flush();
+
+		counter++;
+
+		// ------------------------------------------------------------------------------
+		// ------------------------------------------------------------------------------
+		// ------------------------------------------------------------------------------
 	}
 
 	std::cout << "Complete LVI." << std::endl; std::cout.flush();
@@ -184,13 +273,13 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
 		const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
 		const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-		const std::vector<std::unordered_map<const State *, double> > &VStar,
-		std::vector<std::unordered_map<const State *, double> > &VResult,
-		PolicyMap *policy, double &maxDifference)
+		const std::vector<std::unordered_map<const State *, double> > &VFixed,
+		std::vector<std::unordered_map<const State *, double> > &V,
+		PolicyMap *policy, std::vector<double> &maxDifference)
 {
 	// The value of the states, one for each reward.
-	std::vector<std::unordered_map<const State *, double> > V;
-	V.resize(R->get_num_rewards());
+	std::vector<std::unordered_map<const State *, double> > VPrime;
+	VPrime.resize(R->get_num_rewards());
 
 	// Compute the convergence criterion which follows from the proof of convergence.
 	double convergenceCriterion = epsilon * (1.0 - h->get_discount_factor()) / h->get_discount_factor();
@@ -208,27 +297,30 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 	}
 
 	// For each of the value functions, we will compute the actions set.
-	for (int i = 0; i < R->get_num_rewards(); i++) {
+	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 //		std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
 
-		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(oj[i]));
+		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(oj[i]));
 
 		// Setup V[i] with initial values of 0.0.
 		for (auto state : *S) {
 			const State *s = resolve(state);
 
+			// NOTE: You can remove the if statement and just use VStar.at(oj[i]).at(s)!!! It is faster, since it
+			// does not matter which V[.] you initialize it to be.
+
 			// If it is in the partition, then it will be updated, so initialize to 0.0.
 //			if (std::find(Pj.begin(), Pj.end(), s) != Pj.end()) {
 //				V[oj[i]][s] = 0.0;
 //			} else {
-				V[oj[i]][s] = VStar.at(oj[i]).at(s);
+				VPrime[oj[i]][s] = VFixed.at(oj[i]).at(s);
 //			}
 		}
 
 		double difference = convergenceCriterion + 1.0;
 
 		// For this V_i, converge until you reach within epsilon of V_i^*.
-//		while (difference > convergenceCriterion) {
+		do {
 //			std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
 
 			difference = 0.0;
@@ -237,7 +329,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			// assignment instead of the move one.
 			std::unordered_map<const State *, double> Vi;
 			for (auto s : Pj) {
-				Vi[s] = V.at(oj[i]).at(s);
+				Vi[s] = VPrime.at(oj[i]).at(s);
 			}
 
 			// For all the states, compute V_i(s).
@@ -245,42 +337,52 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 				const Action *a = nullptr;
 
 				// Update V according to the previously converged subset of actions.
-				compute_V(S, AStar.at(oj[i]).at(s), T, Ri, h, s, V.at(oj[i]), Vi, a);
+				compute_V(S, AStar.at(oj[i]).at(s), T, Ri, h, s, VPrime.at(oj[i]), Vi, a);
 
 				// Store the action taken as part of the policy. This will change all the time, especially over i, but whatever.
 				policy->set(s, a);
 
 				// Continue to compute the infinity normed difference between value functions for convergence checking.
-				if (std::fabs(V[oj[i]][s] - Vi[s]) > difference) {
-					difference = std::fabs(V.at(oj[i]).at(s) - Vi.at(s));
+				if (std::fabs(VPrime[oj[i]][s] - Vi[s]) > difference) {
+					difference = std::fabs(VPrime.at(oj[i]).at(s) - Vi.at(s));
 				}
 			}
 
 			// After iterating over states, update the real V[i] for all s.
 			for (auto s : Pj) {
-				V.at(oj[i]).at(s) = Vi.at(s);
+				VPrime.at(oj[i]).at(s) = Vi.at(s);
 			}
-//		}
+		} while (loopingVersion && difference > convergenceCriterion);
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
-		if (i != R->get_num_rewards() - 1) {
+		if (i != (int)R->get_num_rewards() - 1) {
 			for (auto s : Pj) {
 				// Use the delta function to compute the final set of AStar[i + 1].
 				// NOTE: Intentionally, we use [s] for AStar, because this has not yet been defined for i + 1. This
 				// creates the vector for state s in place.
-				compute_A_delta(S, AStar.at(oj[i]).at(s), T, Ri, h, s, V.at(oj[i]), delta[oj[i]], AStar.at(oj[i + 1])[s]);
+				compute_A_delta(S, AStar.at(oj[i]).at(s), T, Ri, h, s, VPrime.at(oj[i]), delta[oj[i]], AStar.at(oj[i + 1])[s]);
 			}
 		}
 
 		// Copy the final results for these states.
 		for (auto s : Pj) {
-			// Also, update the maximum difference found over all partitions after the subset
-			// of states have had VI executed.
-			if (fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s)) > maxDifference) {
-				maxDifference = fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s));
-			}
+//			// Also, update the maximum difference found over all partitions after the subset
+//			// of states have had VI executed.
+//			if (fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s)) > maxDifference[oj[i]]) {
+//				maxDifference[oj[i]] = fabs(V.at(oj[i]).at(s) - VStar.at(oj[i]).at(s));
+//			}
 
-			VResult[oj[i]][s] = V.at(oj[i]).at(s);
+			V[oj[i]][s] = VPrime.at(oj[i]).at(s);
+		}
+	}
+
+	// Update the maximum difference found over all partitions after the subset
+	// of states have had VI executed.
+	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+		for (auto s : Pj) {
+			if (fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s)) > maxDifference[i]) {
+				maxDifference[i] = fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s));
+			}
 		}
 	}
 
@@ -347,7 +449,7 @@ void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> 
 
 	// For all the actions, compute max Q_i(s, a) over the current set of actions. Also, record the
 	// value of each Q_i(s, a) for all actions a in A.
-	for (int i = 0; i < Ai.size(); i++) {
+	for (int i = 0; i < (int)Ai.size(); i++) {
 		double Qisa = compute_Q(S, T, Ri, h, s, Ai[i], Vi);
 		Qis.push_back(Qisa);
 
@@ -362,7 +464,7 @@ void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> 
 
 	// Compute the new A_{i+1} using the Q-values and current A_i.
 	AiPlus1.clear();
-	for (int i = 0; i < Ai.size(); i++) {
+	for (int i = 0; i < (int)Ai.size(); i++) {
 		// Check if this is difference within eta_i, but account for machine precision issues
 		// within 1 order of magnitude.
 		if (maxQisa - Qis[i] < etai + std::numeric_limits<double>::epsilon() * 10.0) {
@@ -381,7 +483,7 @@ void LVI::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
 	a = nullptr;
 
 	// For all the actions, compute max Q_i(s, a) over the current set of actions.
-	for (int i = 0; i < Ai.size(); i++) {
+	for (int i = 0; i < (int)Ai.size(); i++) {
 		const Action *action = Ai[i];
 
 		double Qisa = compute_Q(S, T, Ri, h, s, action, Vi);

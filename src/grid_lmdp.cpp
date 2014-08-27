@@ -74,8 +74,10 @@ void GridLMDP::set_slack(float d1, float d2, float d3)
 
 void GridLMDP::set_default_conditional_preference()
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	std::vector<const State *> p;
-	for (auto s : *((StatesMap *)states)) {
+	for (auto s : *S) {
 		p.push_back(resolve(s));
 	}
 
@@ -93,6 +95,8 @@ void GridLMDP::set_default_conditional_preference()
 
 void GridLMDP::set_split_conditional_preference()
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	std::vector<const State *> p1;
 	std::vector<const State *> p2;
 
@@ -100,9 +104,9 @@ void GridLMDP::set_split_conditional_preference()
 		for (int y = 0; y < size; y++) {
 			for (int x = 0; x < size; x++) {
 				if (x < size / 2) {
-					p1.push_back(((StatesMap *)states)->get(c * size * size + y * size + x));
+					p1.push_back(S->get(c * size * size + y * size + x));
 				} else {
-					p2.push_back(((StatesMap *)states)->get(c * size * size + y * size + x));
+					p2.push_back(S->get(c * size * size + y * size + x));
 				}
 			}
 		}
@@ -130,6 +134,8 @@ void GridLMDP::set_split_conditional_preference()
 
 void GridLMDP::print(const PolicyMap *policy)
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	unsigned int actionNorth = 0; // North
 	unsigned int actionSouth = 1; // South
 	unsigned int actionEast = 2; // East
@@ -162,7 +168,7 @@ void GridLMDP::print(const PolicyMap *policy)
                 } else if (std::find(blocked.begin(), blocked.end(), stateHashValue) != blocked.end()) {
                     std::cout << "x";
                 } else {
-                    const Action *action = policy->get(((StatesMap *)states)->get(stateHashValue));
+                    const Action *action = policy->get(S->get(stateHashValue));
 
                     if (action->hash_value() == actionNorth) {
                         std::cout << "^";
@@ -191,6 +197,7 @@ void GridLMDP::print(const PolicyMap *policy)
 void GridLMDP::create_states()
 {
 	states = new StatesMap();
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
 	// The grid world's size is determined by the size variable.
 	IndexedState::reset_indexer();
@@ -203,7 +210,7 @@ void GridLMDP::create_states()
 
 //            	unsigned int current = IndexedState::get_num_states();
 //                if (std::find(blocked.begin(), blocked.end(), current) == blocked.end()) {
-                    ((StatesMap *)states)->add(new IndexedState());
+                    S->add(new IndexedState());
 //                }
             }
         }
@@ -213,18 +220,23 @@ void GridLMDP::create_states()
 void GridLMDP::create_actions()
 {
 	actions = new ActionsMap();
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
 
 	// There will only be four actions to move around the grid world.
 	IndexedAction::reset_indexer();
-	((ActionsMap *)actions)->add(new IndexedAction()); // North
-	((ActionsMap *)actions)->add(new IndexedAction()); // South
-	((ActionsMap *)actions)->add(new IndexedAction()); // East
-	((ActionsMap *)actions)->add(new IndexedAction()); // West
+	A->add(new IndexedAction()); // North
+	A->add(new IndexedAction()); // South
+	A->add(new IndexedAction()); // East
+	A->add(new IndexedAction()); // West
 }
 
 void GridLMDP::create_state_transitions()
 {
 	stateTransitions = new StateTransitionsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
+	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
+
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
 
 	unsigned int actionNorth = 0; // North
 	unsigned int actionSouth = 1; // South
@@ -249,13 +261,13 @@ void GridLMDP::create_state_transitions()
 
                 // Only do all the work below if this is not one of the two absorbing state corners (top and bottom right).
                 if ((x == size - 1 && y == 0) || (x == size - 1 && y == size - 1)) {
-                	for (auto action : *((ActionsMap *)actions)) {
+                	for (auto action : *A) {
                 		const Action *a = resolve(action);
 
-						((StateTransitionsArray *)stateTransitions)->set(
-							((StatesMap *)states)->get(current),
+						T->set(
+							S->get(current),
 							a,
-							((StatesMap *)states)->get(current),
+							S->get(current),
 							1.0);
                 	}
 
@@ -269,58 +281,58 @@ void GridLMDP::create_state_transitions()
                 	unsigned int northNoCookie = 1 * size * size + (y - 1) * size + x;
                 	unsigned int eastNoCookie = 1 * size * size + y * size + (x + 1);
 
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(currentNoCookie),
                         0.8);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(eastNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(eastNoCookie),
                         0.1);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(currentNoCookie),
                         0.1);
 
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(eastNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(eastNoCookie),
                         0.1);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(currentNoCookie),
                         0.9);
 
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(northNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(northNoCookie),
                         0.1);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(eastNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(eastNoCookie),
                         0.8);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(currentNoCookie),
                         0.1);
 
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(northNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(northNoCookie),
                         0.1);
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(currentNoCookie),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(currentNoCookie),
                         0.9);
 
                     continue;
@@ -346,31 +358,31 @@ void GridLMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'north' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(north),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(north),
                         forward);
                 }
                 if (left > 0.0) { // The hash 'west' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(west),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(west),
                         left);
                 }
                 if (right > 0.0) { // The hash 'east' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(east),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(east),
                         right);
                 }
                 if (stuck > 0.0) {
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionNorth),
-                        ((StatesMap *)states)->get(current),
+                    T->set(
+                        S->get(current),
+                        A->get(actionNorth),
+                        S->get(current),
                         stuck);
                 }
 
@@ -394,31 +406,31 @@ void GridLMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'south' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(south),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(south),
                         forward);
                 }
                 if (right > 0.0) { // The hash 'west' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(west),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(west),
                         right);
                 }
                 if (left > 0.0) { // The hash 'east' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(east),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(east),
                         left);
                 }
                 if (stuck > 0.0) {
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionSouth),
-                        ((StatesMap *)states)->get(current),
+                    T->set(
+                        S->get(current),
+                        A->get(actionSouth),
+                        S->get(current),
                         stuck);
                 }
 
@@ -442,31 +454,31 @@ void GridLMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'east' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(east),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(east),
                         forward);
                 }
                 if (left > 0.0) { // The hash 'north' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(north),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(north),
                         left);
                 }
                 if (right > 0.0) { // The hash 'south' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(south),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(south),
                         right);
                 }
                 if (stuck > 0.0) {
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionEast),
-                        ((StatesMap *)states)->get(current),
+                    T->set(
+                        S->get(current),
+                        A->get(actionEast),
+                        S->get(current),
                         stuck);
                 }
 
@@ -490,31 +502,31 @@ void GridLMDP::create_state_transitions()
                 }
 
                 if (forward > 0.0) { // The hash 'west' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(west),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(west),
                         forward);
                 }
                 if (right > 0.0) { // The hash 'north' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(north),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(north),
                         right);
                 }
                 if (left > 0.0) { // The hash 'south' must be a valid state.
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(south),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(south),
                         left);
                 }
                 if (stuck > 0.0) {
-                    ((StateTransitionsArray *)stateTransitions)->set(
-                        ((StatesMap *)states)->get(current),
-                        ((ActionsMap *)actions)->get(actionWest),
-                        ((StatesMap *)states)->get(current),
+                    T->set(
+                        S->get(current),
+                        A->get(actionWest),
+                        S->get(current),
                         stuck);
                 }
             }
@@ -525,27 +537,32 @@ void GridLMDP::create_state_transitions()
 void GridLMDP::create_rewards()
 {
 	rewards = new FactoredRewards();
+	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
+
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
+	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
 
 	// Create the primary penalty in the top right corner, an absorbing state.
 	SASRewardsArray *primary = new SASRewardsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
-	((FactoredRewards *)rewards)->add_factor(primary);
+	R->add_factor(primary);
 
 	// Top right penalty.
-	for (auto state : *((StatesMap *)states)) {
+	for (auto state : *S) {
 		const State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
 			primary->set(s, a,
-					((StatesMap *)states)->get(0 + 0 + (size - 1)),
+					S->get(0 + 0 + (size - 1)),
 					-1.0);
 			primary->set(s, a,
-					((StatesMap *)states)->get(1 * size * size + 0 + (size - 1)),
+					S->get(1 * size * size + 0 + (size - 1)),
 					-1.0);
 		}
 	}
@@ -575,20 +592,20 @@ void GridLMDP::create_rewards()
 
 	// Create the secondary reward in the bottom right corner, an absorbing state.
 	SASRewardsArray *secondary = new SASRewardsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
-	((FactoredRewards *)rewards)->add_factor(secondary);
+	R->add_factor(secondary);
 
 	// Small penalty for travel.
-	for (auto state : *((StatesMap *)states)) {
+	for (auto state : *S) {
 		const State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
-			for (auto statePrime : *((StatesMap *)states)) {
+			for (auto statePrime : *S) {
 				const State *sp = resolve(statePrime);
 
 				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
@@ -602,18 +619,18 @@ void GridLMDP::create_rewards()
 
 	// Bottom right reward.
 	for (int c = 0; c < 2; c++) {
-		for (auto state : *((StatesMap *)states)) {
+		for (auto state : *S) {
 			const State *s = resolve(state);
 
 			if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 				continue;
 			}
 
-			for (auto action : *((ActionsMap *)actions)) {
+			for (auto action : *A) {
 				const Action *a = resolve(action);
 
 				secondary->set(s, a,
-						((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+						S->get(c * size * size + (size - 1) * size + (size - 1)),
 						1.0);
 			}
 		}
@@ -621,36 +638,36 @@ void GridLMDP::create_rewards()
 
 	// Zero for absorbing states.
 	for (int c = 0; c < 2; c++) {
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
-			secondary->set(((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+			secondary->set(S->get(c * size * size + (size - 1) * size + (size - 1)),
 							a,
-							((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							S->get(c * size * size + (size - 1) * size + (size - 1)),
 							0.0);
-			secondary->set(((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+			secondary->set(S->get(c * size * size + 0 + (size - 1)),
 							a,
-							((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							S->get(c * size * size + 0 + (size - 1)),
 							0.0);
 		}
 	}
 
 	// Create the tertiary reward in the bottom left corner.
 	SASRewardsArray *tertiary = new SASRewardsArray(IndexedState::get_num_states(), IndexedAction::get_num_actions());
-	((FactoredRewards *)rewards)->add_factor(tertiary);
+	R->add_factor(tertiary);
 
 	// Small penalty for travel.
-	for (auto state : *((StatesMap *)states)) {
+	for (auto state : *S) {
 		const State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
-			for (auto statePrime : *((StatesMap *)states)) {
+			for (auto statePrime : *S) {
 				const State *sp = resolve(statePrime);
 
 				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
@@ -663,18 +680,18 @@ void GridLMDP::create_rewards()
 	}
 
 	// Bottom left reward.
-	for (auto state : *((StatesMap *)states)) {
+	for (auto state : *S) {
 		const State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
 			tertiary->set(s, a,
-					((StatesMap *)states)->get(0 + (size - 1) * size + 0),
+					S->get(0 + (size - 1) * size + 0),
 					1.0);
 //			tertiary->set(nullptr, nullptr,
 //					((FiniteStates *)states)->get(NamedState::hash_value("0 " + std::to_string(size - 1) + " 1")),
@@ -684,16 +701,16 @@ void GridLMDP::create_rewards()
 
 	// Zero for absorbing states.
 	for (int c = 0; c < 2; c++) {
-		for (auto action : *((ActionsMap*)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
-			tertiary->set(((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+			tertiary->set(S->get(c * size * size + (size - 1) * size + (size - 1)),
 							a,
-							((StatesMap *)states)->get(c * size * size + (size - 1) * size + (size - 1)),
+							S->get(c * size * size + (size - 1) * size + (size - 1)),
 							0.0);
-			tertiary->set(((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+			tertiary->set(S->get(c * size * size + 0 + (size - 1)),
 							a,
-							((StatesMap *)states)->get(c * size * size + 0 + (size - 1)),
+							S->get(c * size * size + 0 + (size - 1)),
 							0.0);
 		}
 	}
@@ -701,8 +718,10 @@ void GridLMDP::create_rewards()
 
 void GridLMDP::create_misc()
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	// The initial state is the top left cell.
-	initialState = new Initial(((StatesMap *)states)->get(0));
+	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
 	horizon = new Horizon(0.9);

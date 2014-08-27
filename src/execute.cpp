@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
 
 	PolicyMap *policy = nullptr;
 
-	LVI solver(0.0001);
+//	LVI solver(0.00001, false);
+	LVI solver(0.00001, true);
+
 	policy = solver.solve(losmMDP);
 
 	losmMDP->save_policy(policy, argv[4]);
@@ -82,10 +84,10 @@ int main(int argc, char *argv[]) {
 	RawFile rawFile;
 
 //	GridLMDP *gridLMDP = new GridLMDP(0, 5, 0, -0.03);
-//	GridLMDP *gridLMDP = new GridLMDP(0, 10, 0, -0.03);
+	GridLMDP *gridLMDP = new GridLMDP(0, 10, 0, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 8, 10, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(3, 15, 30, -0.03);
-	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
+//	GridLMDP *gridLMDP = new GridLMDP(1, 20, 30, -0.03);
 //	GridLMDP *gridLMDP = new GridLMDP(1, 25, 0, -0.03);
 
 	gridLMDP->set_slack(0.0f, 0.0f, 0.0f);
@@ -94,7 +96,9 @@ int main(int argc, char *argv[]) {
 
 	PolicyMap *policy = nullptr;
 
-	LVI solver(0.0001);
+//	LVI solver(0.00001, false);
+	LVI solver(0.00001, true);
+
 	policy = solver.solve(gridLMDP);
 	gridLMDP->print(policy);
 

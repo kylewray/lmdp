@@ -24,6 +24,8 @@
 
 #include "../include/lmdp.h"
 
+#include "../../librbr/librbr/include/core/rewards/reward_exception.h"
+
 LMDP::LMDP()
 { }
 
@@ -53,7 +55,11 @@ LMDP::~LMDP()
 
 const FactoredRewards *LMDP::get_rewards() const
 {
-	return (FactoredRewards *)rewards;
+	const FactoredRewards *R = dynamic_cast<const FactoredRewards *>(rewards);
+	if (R == nullptr) {
+		throw RewardException();
+	}
+	return R;
 }
 
 void LMDP::set_slack(std::vector<float> *d)

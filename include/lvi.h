@@ -54,8 +54,9 @@ public:
 	 * A constructor for the LVI class which allows for the specification
 	 * of the convergence criterion (tolerance).
 	 * @param	tolerance		The tolerance which determines convergence of value iteration.
+	 * @param	enableLooping	If this should be the looping version of LVI.
 	 */
-	LVI(double tolerance);
+	LVI(double tolerance, bool loopingVersion);
 
 	/**
 	 * The deconstructor for the LVI class.
@@ -105,8 +106,8 @@ protected:
 	 * @param	delta				The slack vector.
 	 * @param	Pj					The z-partition over states.
 	 * @param	oj					The z-array of orderings over each of the k rewards.
-	 * @param	VStar				The fixed set of value functions from the previous outer step.
-	 * @param	VResult				The resultant value of the states. This is updated.
+	 * @param	VFixed				The fixed set of value functions from the previous outer step.
+	 * @param	V					The resultant value of the states. This is updated.
 	 * @param	policy				The policy for the states in the partition. This is updated.
 	 * @param	maxDifference		The maximal difference for convergence checking. This is updated.
 	 * @throw	PolicyException		An error occurred computing the policy.
@@ -115,9 +116,9 @@ protected:
 	virtual void compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
 			const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
 			const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-			const std::vector<std::unordered_map<const State *, double> > &VStar,
-			std::vector<std::unordered_map<const State *, double> > &VResult,
-			PolicyMap *policy, double &maxDifference);
+			const std::vector<std::unordered_map<const State *, double> > &VFixed,
+			std::vector<std::unordered_map<const State *, double> > &V,
+			PolicyMap *policy, std::vector<double> &maxDifference);
 
 	/**
 	 * Compute A_{i+1}^t given that the value function for i, V_i^t, has NOT yet converged.
@@ -190,6 +191,11 @@ protected:
 	 * The tolerance convergence criterion.
 	 */
 	double epsilon;
+
+	/**
+	 * If this is the looping version or not.
+	 */
+	bool loopingVersion;
 
 };
 

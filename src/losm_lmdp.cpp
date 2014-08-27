@@ -71,9 +71,11 @@ void LOSMMDP::set_slack(float d1, float d2)
 
 void LOSMMDP::set_uniform_conditional_preference()
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	std::vector<const State *> p;
-	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+	for (auto state : *S) {
+		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
 		p.push_back(s);
 	}
 
@@ -90,11 +92,13 @@ void LOSMMDP::set_uniform_conditional_preference()
 
 void LOSMMDP::set_tiredness_conditional_preference()
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	std::vector<const State *> p1;
 	std::vector<const State *> p2;
 
-	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+	for (auto state : *S) {
+		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
 
 		if (s->get_tiredness() == 0) {
 			p1.push_back(s);
@@ -122,6 +126,11 @@ void LOSMMDP::set_tiredness_conditional_preference()
 
 bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+//	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
+//	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
+//	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
+
 	std::ofstream file(filename);
 	if (!file.is_open()) {
 		return true;
@@ -137,12 +146,12 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
 //		std::cout << ls->get_index() << ": " << ia << std::endl; std::cout.flush();
 //	}
 
-	for (auto state : *((StatesMap *)states)) {
+	for (auto state : *S) {
 		const State *s = resolve(state);
-		const LOSMState *ls = static_cast<const LOSMState *>(s);
+		const LOSMState *ls = dynamic_cast<const LOSMState *>(s);
 
 		const Action *a = policy->get(s);
-		const IndexedAction *ia = static_cast<const IndexedAction *>(a);
+		const IndexedAction *ia = dynamic_cast<const IndexedAction *>(a);
 
 		file << ls->get_current_step()->get_uid() << ",";
 		file << ls->get_current()->get_uid() << ",";
@@ -179,6 +188,7 @@ void LOSMMDP::create_states(LOSM *losm)
 	LOSMState::reset_indexer();
 
 	states = new StatesMap();
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
 	std::cout << "Num Nodes: " << losm->get_nodes().size() << std::endl; std::cout.flush();
 	std::cout << "Num Edges: " << losm->get_edges().size() << std::endl; std::cout.flush();
@@ -246,22 +256,22 @@ void LOSMMDP::create_states(LOSM *losm)
 		// Now, create the actual pair of LOSMStates.
 		for (int i = 0; i < NUM_TIREDNESS_LEVELS; i++) {
 			// Autonomy is not enabled. This always exists.
-			((StatesMap *)states)->add(new LOSMState(current, previous, i, false,
+			S->add(new LOSMState(current, previous, i, false,
 													distance, speedLimit, isGoal, isAutonomyCapable,
 													currentStepNode, previousStepNode));
 			if (createBoth) {
-				((StatesMap *)states)->add(new LOSMState(previous, current, i, false,
+				S->add(new LOSMState(previous, current, i, false,
 														distance, speedLimit, isGoal, isAutonomyCapable,
 														previousStepNode, currentStepNode));
 			}
 
 			// If possible, create the states in which autonomy is enabled. This may or may not exist.
 			if (isAutonomyCapable) {
-				((StatesMap *)states)->add(new LOSMState(current, previous, i, true,
+				S->add(new LOSMState(current, previous, i, true,
 														distance, speedLimit, isGoal, isAutonomyCapable,
 														currentStepNode, previousStepNode));
 				if (createBoth) {
-					((StatesMap *)states)->add(new LOSMState(previous, current, i, true,
+					S->add(new LOSMState(previous, current, i, true,
 														distance, speedLimit, isGoal, isAutonomyCapable,
 														previousStepNode, currentStepNode));
 				}
@@ -296,7 +306,7 @@ void LOSMMDP::create_states(LOSM *losm)
 	}
 	//*/
 
-	std::cout << "Num States: " << ((StatesMap *)states)->get_num_states() << std::endl; std::cout.flush();
+	std::cout << "Num States: " << S->get_num_states() << std::endl; std::cout.flush();
 
 	std::cout << "Done States!" << std::endl; std::cout.flush();
 }
@@ -317,8 +327,10 @@ void LOSMMDP::create_actions(LOSM *losm)
 	// actions assumes the agent does not wish to enable autonomy, and the second set of actions
 	// assumes the agent wishes to enable autonomy.
 	actions = new ActionsMap();
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
+
 	for (int i = 0; i < maxDegree * 2; i++) {
-		((ActionsMap *)actions)->add(new IndexedAction());
+		A->add(new IndexedAction());
 	}
 
 	std::cout << "Done Actions!" << std::endl; std::cout.flush();
@@ -327,9 +339,13 @@ void LOSMMDP::create_actions(LOSM *losm)
 void LOSMMDP::create_state_transitions(LOSM *losm)
 {
 	stateTransitions = new StateTransitionsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
+//	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
 
-	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
+
+	for (auto state : *S) {
+		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
 
 		// Must store the mapping from a next state (prev, cur, auto) to action taken.
 		std::unordered_map<const LOSMNode *,
@@ -340,8 +356,8 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 		// Only set transitions if this is not a goal state. Goal states will always loop to themselves (handled at the end).
 		if (!s->is_goal()) {
-			for (auto nextState : *((StatesMap *)states)) {
-				const LOSMState *sp = static_cast<const LOSMState *>(resolve(nextState));
+			for (auto nextState : *S) {
+				const LOSMState *sp = dynamic_cast<const LOSMState *>(resolve(nextState));
 
 				// If the current intersection node for current state matches the previous node for the next state,
 				// then this possibly a non-zero transition probability. It now depends on the tiredness level.
@@ -354,7 +370,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 				try {
 					a = map.at(sp->get_previous()).at(sp->get_current()).at(sp->get_autonomy()).at(sp->get_uniqueness_index());
 				} catch (const std::out_of_range &err) {
-					a = ((ActionsMap *)actions)->get(index);
+					a = A->get(index);
 					map[sp->get_previous()][sp->get_current()][sp->get_autonomy()][sp->get_uniqueness_index()] = a;
 					index++;
 				}
@@ -373,7 +389,9 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 				// from s's level of tiredness to sp's level of tiredness. Otherwise, we can assign a state transition.
 				if (p >= 0.0) {
 					stateTransitions->set(s, a, sp, p);
-					successors[s][((IndexedAction *)a)->get_index()] = sp;
+
+					const IndexedAction *ia = dynamic_cast<const IndexedAction *>(a);
+					successors[s][ia->get_index()] = sp;
 				}
 			}
 		}
@@ -383,7 +401,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 		// The reward for any self-transition will be defined to be the largest negative number
 		// possible. This must be done for both enabled and disabled autonomy.
 		for (int i = index; i < (int)IndexedAction::get_num_actions(); i++) {
-			const Action *a = ((ActionsMap *)actions)->get(i);
+			const Action *a = A->get(i);
 			stateTransitions->set(s, a, s, 1.0);
 			successors[s][i] = s;
 		}
@@ -437,24 +455,31 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 void LOSMMDP::create_rewards(LOSM *losm)
 {
 	rewards = new FactoredRewards();
+	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
+
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
+	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
 
 	SASRewardsArray *timeReward = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
-	((FactoredRewards *)rewards)->add_factor(timeReward);
+	R->add_factor(timeReward);
 
 	SASRewardsArray *autonomyReward = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
-	((FactoredRewards *)rewards)->add_factor(autonomyReward);
+	R->add_factor(autonomyReward);
 
-	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+	for (auto state : *S) {
+		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
 
-		for (auto action : *((ActionsMap *)actions)) {
+		for (auto action : *A) {
 			const Action *a = resolve(action);
 
-			for (auto statePrime : *((StatesMap *)states)) {
-				const LOSMState *sp = static_cast<const LOSMState *>(resolve(statePrime));
+			for (auto statePrime : *S) {
+				const LOSMState *sp = dynamic_cast<const LOSMState *>(resolve(statePrime));
+
+//				std::cout << s->get_index() << " " << ((IndexedAction *)a)->get_index() << " " << sp->get_index() << std::endl; std::cout.flush();
 
 				// If this is a valid successor state, then we can set a non-trivial reward.
-				if (((StateTransitionsArray *)stateTransitions)->get(s, a, sp) > 0.0) {
+				if (T->get(s, a, sp) > 0.0) {
 					// Check if this is a self-transition, which essentially yields a
 					// large negative reward.
 					if (s == sp) {
@@ -488,11 +513,19 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// If the road is autonomy capable, you are not autonomous, and you are tired, then take a penalty.
 					// Otherwise, no penalty is given. In other words, you are penalized for every second spent driving
 					// manually when you are tired.
+//					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
+//						autonomyReward->set(s, a, sp, -1.0);
+//					} else {
+//						autonomyReward->set(s, a, sp, 0.0);
+//					}
+
+					// DEBUG:
 					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
-						autonomyReward->set(s, a, sp, -1.0);
+						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * 100.0);
 					} else {
-						autonomyReward->set(s, a, sp, 0.0);
+						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
 					}
+
 
 //					if (sp->get_autonomy()) {
 //						if (sp->get_tiredness() > 0) {
@@ -513,8 +546,10 @@ void LOSMMDP::create_rewards(LOSM *losm)
 
 void LOSMMDP::create_misc(LOSM *losm)
 {
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
+
 	// The initial state is arbitrary.
-	initialState = new Initial(((StatesMap *)states)->get(0));
+	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
 	horizon = new Horizon(0.9);
