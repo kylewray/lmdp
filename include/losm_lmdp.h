@@ -38,11 +38,12 @@
 #include <vector>
 #include <unordered_map>
 
+#define TO_SECONDS 60.0
+
 #define NUM_TIREDNESS_LEVELS 2
 
 #define AUTONOMY_SPEED_LIMIT_THRESHOLD 30.0
 #define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
-#define NON_AUTONOMY_PENALTY_ADJUSTMENT 10.0
 
 // Boston (Commons)
 //#define INITIAL_NODE_1 61362488

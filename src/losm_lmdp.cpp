@@ -508,18 +508,18 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// a positive reward for safely driving autonomously, regardless of the
 					// tiredness of the driver.
 					if (sp->get_autonomy()) {
-						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
-						autonomyReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
+						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit()) * TO_SECONDS);
 					} else {
-						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
-						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
+						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS);
 					}
 
-					/*
-					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
-						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * 100.0);
+					//*
+					double minCost = -0.1;
+					if (!sp->get_autonomy() && sp->get_tiredness() > 0) {
+//					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
+						autonomyReward->set(s, a, sp, std::min(minCost, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS));
 					} else {
-						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
+						autonomyReward->set(s, a, sp, minCost);
 					}
 					//*/
 
@@ -565,7 +565,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(1.0);
+	horizon = new Horizon(0.99);
 
 	std::cout << "Done Misc!" << std::endl; std::cout.flush();
 }

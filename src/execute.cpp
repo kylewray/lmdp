@@ -58,7 +58,9 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	losmMDP->set_slack(0.0f, 0.0f);
+	float adjustment = 1.0f;
+//	float adjustment = 1.0f / (1.0f - 0.99f);
+	losmMDP->set_slack(5.0f * adjustment, 7.0f * adjustment);
 //	losmMDP->set_uniform_conditional_preference();
 	losmMDP->set_tiredness_conditional_preference();
 
