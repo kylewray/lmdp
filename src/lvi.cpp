@@ -302,7 +302,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 
 	// For each of the value functions, we will compute the actions set.
 	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
-		std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
+//std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
 
 		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(oj[i]));
 
@@ -325,7 +325,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 
 		// For this V_i, converge until you reach within epsilon of V_i^*.
 		do {
-			std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
+//std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
 
 			difference = 0.0;
 
@@ -358,7 +358,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			}
 		} while (loopingVersion && difference > convergenceCriterion);
 
-		std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
+//std::cout << "Value Iteration: Convergence Check: " << difference << " vs " << convergenceCriterion << std::endl;
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
 		if (i != (int)R->get_num_rewards() - 1) {
@@ -369,11 +369,11 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 				compute_A_delta(S, AStar.at(oj[i]).at(s), T, Ri, h, s, VPrime.at(oj[i]), delta[oj[i]], AStar.at(oj[i + 1])[s]);
 			}
 
-			// DEBUG!!!! NOTE: ALL ACTIONS ARE POSSIBLE FOR AStar.at(oj[0])!!!!!!!!!!!!!!!!!
-			for (auto s : Pj) {
-				std::cout << AStar.at(oj[i + 1]).at(s).size() << " ";
-			}
-			std::cout << std::endl; std::cout.flush();
+//// DEBUG!!!! NOTE: ALL ACTIONS ARE POSSIBLE FOR AStar.at(oj[0])!!!!!!!!!!!!!!!!!
+//for (auto s : Pj) {
+//std::cout << AStar.at(oj[i + 1]).at(s).size() << " ";
+//}
+//std::cout << std::endl; std::cout.flush();
 		}
 
 		// Copy the final results for these states.
@@ -481,7 +481,7 @@ void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> 
 	for (int i = 0; i < (int)Ai.size(); i++) {
 		// Check if this is difference within eta_i, but account for machine precision issues
 		// within 1 order of magnitude.
-		std::cout << fabs(maxQisa - Qis[i]) << " vs (1 - " << h->get_discount_factor() << ") * " << deltai << " = " << etai << std::endl;
+//std::cout << fabs(maxQisa - Qis[i]) << " vs (1 - " << h->get_discount_factor() << ") * " << deltai << " = " << etai << std::endl;
 		if (fabs(maxQisa - Qis[i]) < etai + std::numeric_limits<double>::epsilon() * 10.0) {
 			AiPlus1.push_back(Ai[i]);
 		}

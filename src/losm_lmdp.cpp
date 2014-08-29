@@ -466,6 +466,8 @@ void LOSMMDP::create_rewards(LOSM *losm)
 	SASRewardsArray *autonomyReward = new SASRewardsArray(LOSMState::get_num_states(), IndexedAction::get_num_actions());
 	R->add_factor(autonomyReward);
 
+	float floatMaxCuda = -1e+35;
+
 	for (auto state : *S) {
 		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
 
@@ -477,7 +479,6 @@ void LOSMMDP::create_rewards(LOSM *losm)
 
 //				std::cout << s->get_index() << " " << ((IndexedAction *)a)->get_index() << " " << sp->get_index() << std::endl; std::cout.flush();
 
-//				float floatMaxCuda = -1e+35;
 //				timeReward->set(s, a, sp, floatMaxCuda);
 //				autonomyReward->set(s, a, sp, floatMaxCuda);
 
@@ -489,7 +490,6 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// the node is less than the number of actions.
 					if (s == sp && !sp->is_goal()) {
 						// Goal states always transition to themselves (absorbing), with zero reward.
-						float floatMaxCuda = -1e+35;
 						timeReward->set(s, a, s, floatMaxCuda);
 						autonomyReward->set(s, a, s, floatMaxCuda);
 
@@ -507,19 +507,18 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// Enabling or disabling autonomy changes the speed of the car, but provides
 					// a positive reward for safely driving autonomously, regardless of the
 					// tiredness of the driver.
-					if (sp->get_autonomy()) {
-						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit()) * TO_SECONDS);
-					} else {
-						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS);
-					}
+//					if (sp->get_autonomy()) {
+//						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR) * TO_SECONDS);
+//					} else {
+						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS - INTERSECTION_WAIT_TIME_IN_SECONDS);
+//					}
 
 					//*
-					double minCost = -0.1;
 					if (!sp->get_autonomy() && sp->get_tiredness() > 0) {
 //					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
-						autonomyReward->set(s, a, sp, std::min(minCost, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS));
+						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * TO_SECONDS - INTERSECTION_WAIT_TIME_IN_SECONDS);
 					} else {
-						autonomyReward->set(s, a, sp, minCost);
+						autonomyReward->set(s, a, sp, -INTERSECTION_WAIT_TIME_IN_SECONDS);
 					}
 					//*/
 
