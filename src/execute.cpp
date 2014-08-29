@@ -45,32 +45,32 @@
 int main(int argc, char *argv[]) {
 	//* LOSM MDP Version.
 
-	if (argc != 5) {
-		std::cerr << "Please specify nodes, edges, and landmarks data files, as well as the policy output file." << std::endl;
+	if (argc != 9) {
+		std::cerr << "Please specify nodes, edges, and landmarks data files, as well as the initial and goal nodes' UIDs, plus the policy output file." << std::endl;
 		return -1;
 	}
 
 	LOSMMDP *losmMDP = nullptr;
 	try {
-		losmMDP = new LOSMMDP(argv[1], argv[2], argv[3]);
+		losmMDP = new LOSMMDP(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]);
 	} catch (LOSMException &err) {
 		std::cerr << "Failed to load the files provided." << std::endl;
 		return -1;
 	}
 
-	losmMDP->set_slack(5.0f, 0.0f);
+	losmMDP->set_slack(0.0f, 0.0f);
 //	losmMDP->set_uniform_conditional_preference();
 	losmMDP->set_tiredness_conditional_preference();
 
 	PolicyMap *policy = nullptr;
 
-//	LVI solver(0.00001, false);
-	LVI solver(0.00001, true);
+//	LVI solver(0.0001, false);
+	LVI solver(0.0001, true);
 
 	policy = solver.solve(losmMDP);
 
-	losmMDP->save_policy(policy, argv[4]);
-//	policy->save(argv[4]);
+	losmMDP->save_policy(policy, argv[8], solver.get_V());
+//	policy->save(argv[8]);
 
 	delete policy;
 	delete losmMDP;
@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
 
 	PolicyMap *policy = nullptr;
 
-//	LVI solver(0.00001, false);
-	LVI solver(0.00001, true);
+//	LVI solver(0.0001, false);
+	LVI solver(0.0001, true);
 
 	policy = solver.solve(gridLMDP);
 	gridLMDP->print(policy);

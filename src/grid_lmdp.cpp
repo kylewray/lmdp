@@ -724,5 +724,5 @@ void GridLMDP::create_misc()
 	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(0.9);
+	horizon = new Horizon(0.99999);
 }

@@ -76,6 +76,12 @@ public:
 	 */
 	PolicyMap *solve(const LMDP *lmdp);
 
+	/**
+	 * Get the values of the states.
+	 * @return	The values of all the states.
+	 */
+	const std::vector<std::unordered_map<const State *, double> > &get_V() const;
+
 protected:
 	/**
 	 * Solve an infinite horizon LMDP using value iteration.
@@ -186,6 +192,11 @@ protected:
 	double compute_Q(const StatesMap *S, const StateTransitions *T, const SASRewards *Ri,
 			const Horizon *h, const State *s, const Action *a,
 			const std::unordered_map<const State *, double> &Vi);
+
+	/**
+	 * The value of the states, one for each reward.
+	 */
+	std::vector<std::unordered_map<const State *, double> > V;
 
 	/**
 	 * The tolerance convergence criterion.

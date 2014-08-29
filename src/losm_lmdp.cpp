@@ -35,6 +35,7 @@
 
 #include "../../librbr/librbr/include/core/actions/indexed_action.h"
 
+#include "../../librbr/librbr/include/core/core_exception.h"
 #include "../../librbr/librbr/include/core/states/state_exception.h"
 
 #include "../../losm/losm/include/losm_exception.h"
@@ -45,8 +46,19 @@
 #include <set>
 #include <algorithm>
 
-LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename)
+LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename,
+		std::string initial1, std::string initial2,
+		std::string goal1, std::string goal2)
 {
+	try {
+		initialNodeUID1 = std::stol(initial1);
+		initialNodeUID2 = std::stol(initial2);
+		goalNodeUID1 = std::stol(goal1);
+		goalNodeUID2 = std::stol(goal2);
+	} catch (std::exception &err) {
+		throw CoreException();
+	}
+
 	losm = new LOSM(nodesFilename, edgesFilename, landmarksFilename);
 
 	create_edges_hash(losm);
@@ -124,27 +136,15 @@ void LOSMMDP::set_tiredness_conditional_preference()
 	ordering.push_back(r2);
 }
 
-bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
+bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename,
+		const std::vector<std::unordered_map<const State *, double> > &V) const
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
-//	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
-//	StateTransitionsArray *T = dynamic_cast<StateTransitionsArray *>(stateTransitions);
-//	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
 
 	std::ofstream file(filename);
 	if (!file.is_open()) {
 		return true;
 	}
-
-//	for (auto state : *((StatesMap *)states)) {
-//		const State *s = resolve(state);
-//		const LOSMState *ls = static_cast<const LOSMState *>(s);
-//
-//		const Action *a = policy->get(s);
-//		const IndexedAction *ia = static_cast<const IndexedAction *>(a);
-//
-//		std::cout << ls->get_index() << ": " << ia << std::endl; std::cout.flush();
-//	}
 
 	for (auto state : *S) {
 		const State *s = resolve(state);
@@ -158,16 +158,14 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename) const
 		file << ls->get_tiredness() << ",";
 		file << ls->get_autonomy() << ",";
 		file << successors.at(ls).at(ia->get_index())->get_previous_step()->get_uid() << ",";
-		file << successors.at(ls).at(ia->get_index())->get_autonomy() << std::endl;
-
-//		file << ls->get_previous()->get_uid() << ",";
-//		file << ls->get_current()->get_uid() << ",";
-//		file << ls->get_tiredness() << ",";
-//		file << ls->get_autonomy() << ",";
-
-//		file << successors.at(ls).at(ia->get_index())->get_previous()->get_uid() << ",";
-//		file << successors.at(ls).at(ia->get_index())->get_current()->get_uid() << ",";
-//		file << successors.at(ls).at(ia->get_index())->get_autonomy() << std::endl;
+		file << successors.at(ls).at(ia->get_index())->get_autonomy() << ",";
+		for (int i = 0; i < (int)V.size(); i++) {
+			file << V.at(i).at(s);
+			if (i != (int)V.size() - 1) {
+				file << ",";
+			}
+		}
+		file << std::endl;
 	}
 
 	file.close();
@@ -242,9 +240,10 @@ void LOSMMDP::create_states(LOSM *losm)
 			continue;
 		}
 
-		if ((current->get_uid() == GOAL_NODE_1 && previous->get_uid() == GOAL_NODE_2) ||
-				(previous->get_uid() == GOAL_NODE_2 && current->get_uid() == GOAL_NODE_1)) {
+		if ((current->get_uid() == goalNodeUID1 && previous->get_uid() == goalNodeUID2) ||
+				(current->get_uid() == goalNodeUID2 && previous->get_uid() == goalNodeUID1)) {
 			isGoal = true;
+			std::cout << "Added Goal State!" << std::endl; std::cout.flush();
 		}
 
 		if (speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD) {
@@ -478,21 +477,29 @@ void LOSMMDP::create_rewards(LOSM *losm)
 
 //				std::cout << s->get_index() << " " << ((IndexedAction *)a)->get_index() << " " << sp->get_index() << std::endl; std::cout.flush();
 
+//				float floatMaxCuda = -1e+35;
+//				timeReward->set(s, a, sp, floatMaxCuda);
+//				autonomyReward->set(s, a, sp, floatMaxCuda);
+
 				// If this is a valid successor state, then we can set a non-trivial reward.
 				if (T->get(s, a, sp) > 0.0) {
-					// Check if this is a self-transition, which essentially yields a
-					// large negative reward.
-					if (s == sp) {
+					// Check if this is a self-transition, which is fine if the agent is in a goal
+					// state, but otherwise yields a large negative reward. This is how I am able to
+					// handle having the same number of actions for each state, even if the degree of
+					// the node is less than the number of actions.
+					if (s == sp && !sp->is_goal()) {
 						// Goal states always transition to themselves (absorbing), with zero reward.
-						if (s->is_goal()) {
-							timeReward->set(s, a, s, 1.0);
-							autonomyReward->set(s, a, s, 0.0);
-						} else {
-							float floatMaxCuda = -1e+35;
+						float floatMaxCuda = -1e+35;
+						timeReward->set(s, a, s, floatMaxCuda);
+						autonomyReward->set(s, a, s, floatMaxCuda);
 
-							timeReward->set(s, a, s, floatMaxCuda);
-							autonomyReward->set(s, a, s, floatMaxCuda);
-						}
+						continue;
+					}
+
+					// If you got here, then s != sp, so any transition to a goal state is cost of 0 for the time reward.
+					if (sp->is_goal()) {
+						timeReward->set(s, a, sp, 0.0);
+						autonomyReward->set(s, a, sp, 0.0);
 
 						continue;
 					}
@@ -500,42 +507,48 @@ void LOSMMDP::create_rewards(LOSM *losm)
 					// Enabling or disabling autonomy changes the speed of the car, but provides
 					// a positive reward for safely driving autonomously, regardless of the
 					// tiredness of the driver.
-//					if (sp->is_goal()) {
-//						timeReward->set(s, a, sp, 1.0);
-//					} else {
-						if (sp->get_autonomy()) {
-							timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
-						} else {
-							timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
-						}
-//					}
+					if (sp->get_autonomy()) {
+						timeReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
+						autonomyReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
+					} else {
+						timeReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
+						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
+					}
 
-					// If the road is autonomy capable, you are not autonomous, and you are tired, then take a penalty.
-					// Otherwise, no penalty is given. In other words, you are penalized for every second spent driving
-					// manually when you are tired.
-//					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
-//						autonomyReward->set(s, a, sp, -1.0);
-//					} else {
-//						autonomyReward->set(s, a, sp, 0.0);
-//					}
-
-					// DEBUG:
+					/*
 					if (sp->is_autonomy_capable() && !sp->get_autonomy() && sp->get_tiredness() > 0) {
 						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit() * 100.0);
 					} else {
 						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
 					}
+					//*/
 
-
-//					if (sp->get_autonomy()) {
-//						if (sp->get_tiredness() > 0) {
-//							autonomyReward->set(s, a, sp, 1.0);
-//						} else {
-//							autonomyReward->set(s, a, sp, -sp->get_distance() / (sp->get_speed_limit() * AUTONOMY_SPEED_LIMIT_FACTOR));
-//						}
-//					} else {
-//						autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit());
-//					}
+					/*
+					// If the road is autonomy capable, you are not autonomous, and you are tired, then take a penalty.
+					// Otherwise, no penalty is given. In other words, you are penalized for every second spent driving
+					// manually when you are tired.
+					if (sp->is_autonomy_capable()) {
+						if (sp->get_autonomy()) {
+							if (sp->get_tiredness() == 0) {
+								autonomyReward->set(s, a, sp, 0.0); //-sp->get_distance() / sp->get_speed_limit() * 0.5); // Autonomy Possible + Autonomy Enabled + Awake = Alright
+							} else {
+								autonomyReward->set(s, a, sp, 0.0); //-sp->get_distance() / sp->get_speed_limit() * 0.1); // Autonomy Possible + Autonomy Enabled + Tired = Good!!!
+							}
+						} else {
+							if (sp->get_tiredness() == 0) {
+								autonomyReward->set(s, a, sp, 0.0); //-sp->get_distance() / sp->get_speed_limit() * 0.5); // Autonomy Possible + Autonomy Disabled + Awake = Alright
+							} else {
+								autonomyReward->set(s, a, sp, -sp->get_distance() / sp->get_speed_limit()); // Autonomy Possible + Autonomy Disabled + Tired = Bad!!!
+							}
+						}
+					} else {
+						if (sp->get_tiredness() == 0) {
+							autonomyReward->set(s, a, sp, 0.0); //-sp->get_distance() / sp->get_speed_limit() * 0.1); // Autonomy Impossible + Awake = Good!!!
+						} else {
+							autonomyReward->set(s, a, sp, 0.0); //-sp->get_distance() / sp->get_speed_limit() * 0.5); // Autonomy Impossible + Tired = Alright
+						}
+					}
+					//*/
 				}
 			}
 		}
@@ -552,7 +565,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(0.9);
+	horizon = new Horizon(1.0);
 
 	std::cout << "Done Misc!" << std::endl; std::cout.flush();
 }

@@ -44,8 +44,27 @@
 #define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
 #define NON_AUTONOMY_PENALTY_ADJUSTMENT 10.0
 
-#define GOAL_NODE_1 66757197
-#define GOAL_NODE_2 66703862
+// Boston (Commons)
+//#define INITIAL_NODE_1 61362488
+//#define INITIAL_NODE_2 61362484
+//#define GOAL_NODE_1 61356537
+//#define GOAL_NODE_2 61515075
+
+// Boston (Small)
+//#define INITIAL_NODE_1 61371580
+//#define INITIAL_NODE_2 61341710
+//#define GOAL_NODE_1 61505151
+//#define GOAL_NODE_2 61356471
+
+// Riverside Park
+//#define GOAL_NODE_1 2329911911
+//#define GOAL_NODE_2 2329911973
+//#define INITIAL_NODE_1 2141026506
+//#define INITIAL_NODE_2 42453220
+
+// Amherst (Small)
+//#define GOAL_NODE_1 66757197
+//#define GOAL_NODE_2 66703862
 
 /**
  * A Multi-Objective Markov Decision Process (MOMDP) with lexicographic reward preferences for a LOSM object.
@@ -58,8 +77,13 @@ public:
 	 * @param	nodesFilename 		The name of the LOSM nodes file to load.
 	 * @param	edgesFilename 		The name of the LOSM edges file to load.
 	 * @param	landmarksFilename	The name of the LOSM landmarks file to load.
+	 * @param	initial1			The first initial node's UID.
+	 * @param	initial2			The second initial node's UID.
+	 * @param	goal1				The first goal node's UID.
+	 * @param	goal2				The second goal node's UID.
 	 */
-	LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename);
+	LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename,
+			std::string initial1, std::string initial2, std::string goal1, std::string goal2);
 
 	/**
 	 * A deconstructor for the LOSMMDP class.
@@ -86,10 +110,13 @@ public:
 
 	/**
 	 * Save a PolicyMap to the custom format required by the visualizer. This assumes infinite horizon.
+	 * @param	policy		The policy mapping states to actions.
 	 * @param	filename	The name of the file to save.
+	 * @param	V			The values of all the states.
 	 * @return	Returns true if an error arose, and false otherwise.
 	 */
-	bool save_policy(const PolicyMap *policy, std::string filename) const;
+	bool save_policy(const PolicyMap *policy, std::string filename,
+			const std::vector<std::unordered_map<const State *, double> > &V) const;
 
 private:
 	/**
@@ -170,6 +197,26 @@ private:
 	 * the successor state. Used to save a policy for the visualizer.
 	 */
 	std::unordered_map<const LOSMState *, std::unordered_map<unsigned int, const LOSMState *> > successors;
+
+	/**
+	 * One of the two initial node's UID.
+	 */
+	unsigned long initialNodeUID1;
+
+	/**
+	 * One of the two initial node's UID.
+	 */
+	unsigned long initialNodeUID2;
+
+	/**
+	 * One of the two goal node's UID.
+	 */
+	unsigned long goalNodeUID1;
+
+	/**
+	 * One of the two goal node's UID.
+	 */
+	unsigned long goalNodeUID2;
 
 };
 

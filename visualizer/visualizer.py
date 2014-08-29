@@ -77,12 +77,15 @@ class LMDPVisualizer:
         self.roadLineWidth = 20
         self.markerSize = 20
 
+        self.fontSize = 30
+
         self.camera = {'x': 0, 'y': 0, 'scale': 1.0, 'target': 1.0, 'original': 1.0, 'speed': 0.05}
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
         self.mousePosition = {'x': 0, 'y': 0}
 
-        self.policyLineWidth = 10
-        self.policyOffset = 2.5
+        self.policyLineWidth = 5 # 10
+        self.policyOffset = 10 # 2.5
+        self.policyTrigonWidth = 6.0 # 1.0
         self.highlight = highlight
 
         self.tiredness = 0
@@ -92,8 +95,10 @@ class LMDPVisualizer:
         self.showStateNodes = False
         self.selectedNodes = set()
 
-        self.elements = list()
-        self.elementResolution = 12  # Note: How many sub-divisions, i.e., scale as above.
+        #self.fastRender = True
+        self.fastRender = False
+        self.elements = dict()
+        self.elementResolution = 6 #12  # Note: How many sub-divisions, i.e., scale as above.
 
         self.losm = None
         if filePrefix != None:
@@ -137,14 +142,15 @@ class LMDPVisualizer:
         # Modify the bounds of the window based on these bounds. This
         # preserves the apsect ratio of the map, while maximizing the
         # window as large as possible.
-        arWindow = float(self.vwidth) / float(self.vheight)
-        arMap = float(self.bounds['xmax'] - self.bounds['xmin']) / \
+        ar = float(self.width) / float(self.height)
+        arv = float(self.bounds['xmax'] - self.bounds['xmin']) / \
                 float(self.bounds['ymax'] - self.bounds['ymin'])
 
-        if arMap < arWindow:
-            self.vwidth = int(arMap * self.vheight)
-        else:
-            self.vheight = int(arMap / self.vwidth)
+        w = self.height
+        h = self.width
+
+        self.vwidth = min(w, int(arv * h))
+        self.vheight = min(h, int(w / arv))
 
 
     def _adjust_nodes_and_landmarks(self):
@@ -202,8 +208,8 @@ class LMDPVisualizer:
             reader = csv.reader(f, delimiter=',')
 
             for row in reader:
-                if len(row) != 6:
-                    print("Failed to parse 6 arguments for policy line: '" + \
+                if len(row) < 6:
+                    print("Failed to parse >= 6 arguments for policy line: '" + \
                         ",".join(row) + "'.")
                     break
 
@@ -212,8 +218,10 @@ class LMDPVisualizer:
 
                 uids = (int(row[0]), int(row[1]), int(row[4]))
                 nextAutonomy = (row[5] == '1')
+                valueVector = [float(r) for r in row[6:]]
 
-                self.policy[currentTiredness][currentAutonomy] += [(uids, nextAutonomy)]
+                self.policy[currentTiredness][currentAutonomy] += \
+                        [(uids, nextAutonomy, valueVector)]
 
 
     def execute(self):
@@ -226,8 +234,10 @@ class LMDPVisualizer:
 
         renderer = sdl2.ext.Renderer(window)
 
-        targetTextures = self._create_map_texture(renderer)
+        if self.fastRender:
+            self._create_map(renderer)
 
+        # Execute the main loop.
         running = True
         while running:
             events = sdl2.ext.get_events()
@@ -235,7 +245,7 @@ class LMDPVisualizer:
             for event in events:
                 if event.type == sdl2.SDL_QUIT:
                     running = False
-                    break
+                    #break
 
                 self._check_keyboard(event)
                 self._check_mouse(event)
@@ -245,21 +255,51 @@ class LMDPVisualizer:
             renderer.color = sdl2.ext.Color(230, 230, 220)
             renderer.clear()
 
-            self._render_map_texture(renderer)
-            #self._render_map(renderer)
-            #self._render_policy(renderer)
+            if self.fastRender:
+                self._render_map_texture(renderer)
+            else:
+                self._render_map(renderer)
+                self._render_policy(renderer)
 
             renderer.present()
 
-        # Free all the textures.
-        for i, element in enumerate(self.elements):
-            if i % self.elementResolution == 0:
-                print("Freeing map texture %i-%i out of %i." % \
-                        (i, i + self.elementResolution,
-                        self.elementResolution ** 2))
-            sdl2.SDL_DestroyTexture(element[4])
+        if self.fastRender:
+            self._free_map()
 
         sdl2.ext.quit()
+
+
+    def _create_map(self, renderer):
+        """ Create the entire map of texture elements.
+
+            Parameters:
+                renderer -- The renderer object.
+        """
+
+        for t in range(2):
+            self.tiredness = t
+            for a in [True, False]:
+                self.autonomy = a
+                print("Generating for (t, a) = (%i, %i)." % (t, int(a)))
+                self._create_map_texture(renderer)
+
+        print("Done")
+
+
+    def _free_map(self):
+        """ Free all the texture elements. """
+
+        for t in range(2):
+            for a in [True, False]:
+                print("Clearing for (t, a) = (%i, %i)." % (t, int(a)))
+                for i, element in enumerate(self.elements[(t, int(a))]):
+                    if i % self.elementResolution == 0:
+                        print("Freeing map texture %i-%i out of %i." % \
+                                (i, i + self.elementResolution,
+                                self.elementResolution ** 2))
+                    sdl2.SDL_DestroyTexture(element[4])
+
+        print("Done")
 
 
     def _create_map_texture(self, renderer):
@@ -269,7 +309,7 @@ class LMDPVisualizer:
                 renderer -- The renderer object.
         """
 
-        self.elements = list()
+        self.elements[(self.tiredness, self.autonomy)] = list()
 
         elementWidth = int(self.width / self.elementResolution)
         elementHeight = int(self.height / self.elementResolution)
@@ -308,7 +348,8 @@ class LMDPVisualizer:
 
                 renderer.present()
 
-                self.elements += [(x * elementWidth - self.vwidth / 2,
+                self.elements[(self.tiredness, self.autonomy)] += \
+                                    [(x * elementWidth - self.vwidth / 2,
                                     y * elementHeight - self.vheight / 2,
                                     elementWidth,
                                     elementHeight,
@@ -338,16 +379,26 @@ class LMDPVisualizer:
                 self.camera['target'] = 1.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_2:
-                self.camera['target'] = 5.0
+                self.camera['target'] = 3.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_3:
-                self.camera['target'] = 10.0
+                self.camera['target'] = 7.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_4:
-                self.camera['target'] = 20.0
+                self.camera['target'] = 15.0
                 activateCamera = True
             elif event.key.keysym.sym == sdl2.SDLK_5:
-                self.camera['target'] = 40.0
+                self.camera['target'] = 30.0
+                activateCamera = True
+            elif event.key.keysym.sym == sdl2.SDLK_MINUS:
+                self.camera['target'] = max(1.0, self.camera['target'] - 0.25)
+                self.camera['scale'] = self.camera['target']
+                self.camera['original'] = self.camera['target']
+                activateCamera = True
+            elif event.key.keysym.sym == sdl2.SDLK_EQUALS:
+                self.camera['target'] = min(50.0, self.camera['target'] + 0.25)
+                self.camera['scale'] = self.camera['target']
+                self.camera['original'] = self.camera['target']
                 activateCamera = True
 
             if activateCamera:
@@ -426,6 +477,7 @@ class LMDPVisualizer:
 
                     break
 
+
     def _mouse_motion(self, x, y):
         """ Handle the mouse motion.
 
@@ -482,7 +534,7 @@ class LMDPVisualizer:
                 renderer -- The renderer object.
         """
 
-        for element in self.elements:
+        for element in self.elements[(self.tiredness, self.autonomy)]:
             pos = self._camera(element[0], element[1])
             r = sdl2.SDL_Rect(pos[0],
                             pos[1],
@@ -522,7 +574,7 @@ class LMDPVisualizer:
             except KeyError:
                 if edge.speedLimit >= AUTONOMY_SPEED_LIMIT_THRESHOLD:
                     try:
-                        renderer.color = h['autonomyCapableColor']
+                        renderer.color = h['policyAutonomyCapableColor']
                     except KeyError:
                         renderer.color = sdl2.ext.Color(255, 255, 255)
                 else:
@@ -566,8 +618,14 @@ class LMDPVisualizer:
                                         renderer.color.b,
                                         renderer.color.a)
             except:
+                # Amherst Dead End Loop = 66688624 <-> 66600236
+                # Amherst Strange Conflicting States But Kinda OK = 66672799 <-> 66642836
+                # Boston Strange Conflicting States But OK = 61340671 <-> 61340704
                 if obj in self.selectedNodes or \
-                        (self.showStateNodes and obj in self.stateNodes):
+                        (self.showStateNodes and obj in self.stateNodes): # or \
+                        #obj.uid == 66688624 or obj.uid == 66600236 or \
+                        #obj.uid == 66672799 or obj.uid == 66642836 or \
+                        #obj.uid == 61340671 or obj.uid == 61340704:
                     r[0] -= int(self.markerSize / 2)
                     r[1] -= int(self.markerSize / 2)
                     r[2] = r[0] + self.markerSize
@@ -593,6 +651,7 @@ class LMDPVisualizer:
 
         for action in self.policy[self.tiredness][self.autonomy]:
             enableAutonomy = action[1]
+            valueVector = action[2]
 
             node = [np.array(self._camera(self.uidToNode[uid].x, self.uidToNode[uid].y), \
                         dtype=float) \
@@ -683,12 +742,16 @@ class LMDPVisualizer:
             a = [int(a[0]), int(a[1])]
 
             b = [0, 0]
-            b[0] = int(a[0] + math.cos(t1) * trigon[0] - math.sin(t1) * trigon[1])
-            b[1] = int(a[1] + math.sin(t1) * trigon[0] + math.cos(t1) * trigon[1])
+            b[0] = int(a[0] + self.policyTrigonWidth * math.cos(t1) * trigon[0] - \
+                                self.policyTrigonWidth * math.sin(t1) * trigon[1])
+            b[1] = int(a[1] + self.policyTrigonWidth * math.sin(t1) * trigon[0] + \
+                                self.policyTrigonWidth * math.cos(t1) * trigon[1])
 
             c = [0, 0]
-            c[0] = int(a[0] + math.cos(t2) * trigon[0] - math.sin(t2) * trigon[1])
-            c[1] = int(a[1] + math.sin(t2) * trigon[0] + math.cos(t2) * trigon[1])
+            c[0] = int(a[0] + self.policyTrigonWidth * math.cos(t2) * trigon[0] - \
+                                self.policyTrigonWidth * math.sin(t2) * trigon[1])
+            c[1] = int(a[1] + self.policyTrigonWidth * math.sin(t2) * trigon[0] + \
+                                self.policyTrigonWidth * math.cos(t2) * trigon[1])
 
             a = [int(a[0] + beta[0]), int(a[1] + beta[1])]
 
@@ -699,6 +762,26 @@ class LMDPVisualizer:
                                     renderer.color.b,
                                     renderer.color.a)
 
+            try:
+                renderer.color = self.highlight['policyValueColor']
+            except KeyError:
+                renderer.color = sdl2.ext.Color(0, 0, 0)
+
+            fontManager = sdl2.ext.FontManager("/usr/share/fonts/TTF/DejaVuSans.ttf",
+                                                size=self.fontSize,
+                                                color=renderer.color)
+            spriteFactory = sdl2.ext.SpriteFactory(renderer=renderer)
+
+            for i, v in enumerate(valueVector):
+                textSprite = spriteFactory.from_text("%.3f" % (v), fontmanager=fontManager)
+                renderer.copy(textSprite, dstrect=(int((node[1] + alpha * 2)[0]),
+                                        int((node[1] + alpha * 2)[1]) + \
+                                                    i * (self.fontSize + 5),
+                                        textSprite.size[0],
+                                        textSprite.size[1]))
+
+            fontManager.close()
+
 
 if __name__ == "__main__":
     # --- DEBUG ---
@@ -706,8 +789,13 @@ if __name__ == "__main__":
 
     h['policyColor'] = sdl2.ext.Color(25, 150, 25)
     h['policyColorAutonomy'] = sdl2.ext.Color(150, 25, 150)
-    h['autonomyCapableColor'] = sdl2.ext.Color(240, 240, 255)
+    h['policyValueColor'] = sdl2.ext.Color(100, 100, 100)
+    h['policyAutonomyCapableColor'] = sdl2.ext.Color(240, 240, 255)
 
+    # Boston Commons Highlights
+    h['Mount Vernon Place'] = sdl2.ext.Color(200, 0, 0)
+
+    # Amherst (Small) Highlights
     #h['Gray Street'] = sdl2.ext.Color(200, 0, 0)
     #h['Rao\'s cafe'] = sdl2.ext.Color(0, 200, 0)
     #h['Amherst coffee'] = sdl2.ext.Color(0, 0, 200)
