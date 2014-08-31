@@ -62,41 +62,41 @@ const FactoredRewards *LMDP::get_rewards() const
 	return R;
 }
 
-void LMDP::set_slack(std::vector<float> *d)
+void LMDP::set_slack(const std::vector<float> &d)
 {
 	delta.clear();
-	for (float val : *d) {
+	for (float val : d) {
 		delta.push_back(val);
 	}
 }
 
-const std::vector<float> *LMDP::get_slack() const
+const std::vector<float> &LMDP::get_slack() const
 {
-	return &delta;
+	return delta;
 }
 
-void LMDP::set_partitions(std::vector<std::vector<const State *> > *P)
+void LMDP::set_partitions(const std::vector<std::vector<const State *> > &P)
 {
 	partition.clear();
-	for (std::vector<const State *> p : *P) {
+	for (std::vector<const State *> p : P) {
 		partition.push_back(p);
 	}
 }
 
-const std::vector<std::vector<const State *> > *LMDP::get_partitions() const
+const std::vector<std::vector<const State *> > &LMDP::get_partitions() const
 {
-	return &partition;
+	return partition;
 }
 
-void LMDP::set_orderings(std::vector<std::vector<unsigned int> > *o)
+void LMDP::set_orderings(const std::vector<std::vector<unsigned int> > &o)
 {
 	ordering.clear();
-	for (std::vector<unsigned int> r : *o) {
+	for (std::vector<unsigned int> r : o) {
 		ordering.push_back(r);
 	}
 }
 
-const std::vector<std::vector<unsigned int> > *LMDP::get_orderings() const
+const std::vector<std::vector<unsigned int> > &LMDP::get_orderings() const
 {
-	return &ordering;
+	return ordering;
 }

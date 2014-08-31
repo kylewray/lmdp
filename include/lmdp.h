@@ -72,37 +72,37 @@ public:
 	 * Set the slack.
 	 * @param	d	The new slack.
 	 */
-	void set_slack(std::vector<float> *d);
+	void set_slack(const std::vector<float> &d);
 
 	/**
 	 * Get the slack.
 	 * @return	The slack vector.
 	 */
-	const std::vector<float> *get_slack() const;
+	const std::vector<float> &get_slack() const;
 
 	/**
 	 * Set the partitions.
 	 * @param	P	The new partitions.
 	 */
-	void set_partitions(std::vector<std::vector<const State *> > *P);
+	void set_partitions(const std::vector<std::vector<const State *> > &P);
 
 	/**
 	 * Get the partition over states.
 	 * @return	The partition vector.
 	 */
-	const std::vector<std::vector<const State *> > *get_partitions() const;
+	const std::vector<std::vector<const State *> > &get_partitions() const;
 
 	/**
 	 * Set the orderings.
 	 * @param	o	The new orderings.
 	 */
-	void set_orderings(std::vector<std::vector<unsigned int> > *o);
+	void set_orderings(const std::vector<std::vector<unsigned int> > &o);
 
 	/**
 	 * Get the orderings for each partition.
 	 * @return	The orderings for each partition.
 	 */
-	const std::vector<std::vector<unsigned int> > *get_orderings() const;
+	const std::vector<std::vector<unsigned int> > &get_orderings() const;
 
 protected:
 	/**

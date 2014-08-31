@@ -28,7 +28,7 @@
 #include "../../librbr/librbr/include/core/states/states_map.h"
 #include "../../librbr/librbr/include/core/actions/actions_map.h"
 #include "../../librbr/librbr/include/core/state_transitions/state_transitions_array.h"
-#include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
+#include "../../librbr/librbr/include/core/rewards/factored_weighted_rewards.h"
 #include "../../librbr/librbr/include/core/rewards/sas_rewards_array.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
@@ -47,12 +47,9 @@
 #include <algorithm>
 
 LOSMMDP::LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename,
-		std::string initial1, std::string initial2,
 		std::string goal1, std::string goal2)
 {
 	try {
-		initialNodeUID1 = std::stol(initial1);
-		initialNodeUID2 = std::stol(initial2);
 		goalNodeUID1 = std::stol(goal1);
 		goalNodeUID2 = std::stol(goal2);
 	} catch (std::exception &err) {
@@ -171,6 +168,52 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename,
 	file.close();
 
 	return false;
+}
+
+const LOSMState *LOSMMDP::get_initial_state(std::string initial1, std::string initial2) const
+{
+	unsigned long initialNodeUID1 = 0;
+	unsigned long initialNodeUID2 = 0;
+
+	try {
+		initialNodeUID1 = std::stol(initial1);
+		initialNodeUID2 = std::stol(initial2);
+	} catch (std::exception &err) {
+		throw CoreException();
+	}
+
+	const StatesMap *S = dynamic_cast<const StatesMap *>(states);
+
+	for (auto state : *S) {
+		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+
+		if ((s->get_current()->get_uid() == initialNodeUID1 && s->get_previous()->get_uid() == initialNodeUID2) ||
+				(s->get_current()->get_uid() == initialNodeUID2 && s->get_previous()->get_uid() == initialNodeUID1)) {
+			return s;
+		}
+	}
+
+	throw CoreException();
+}
+
+void LOSMMDP::set_rewards_weights(const std::vector<double> &weights)
+{
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
+	if (R == nullptr) {
+		throw CoreException();
+	}
+
+	R->set_weights(weights);
+}
+
+const std::vector<double> &LOSMMDP::get_rewards_weights() const
+{
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
+	if (R == nullptr) {
+		throw CoreException();
+	}
+
+	return R->get_weights();
 }
 
 void LOSMMDP::create_edges_hash(LOSM *losm)
@@ -453,8 +496,8 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 
 void LOSMMDP::create_rewards(LOSM *losm)
 {
-	rewards = new FactoredRewards();
-	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
+	rewards = new FactoredWeightedRewards();
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
 
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);

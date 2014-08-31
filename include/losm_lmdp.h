@@ -79,13 +79,11 @@ public:
 	 * @param	nodesFilename 		The name of the LOSM nodes file to load.
 	 * @param	edgesFilename 		The name of the LOSM edges file to load.
 	 * @param	landmarksFilename	The name of the LOSM landmarks file to load.
-	 * @param	initial1			The first initial node's UID.
-	 * @param	initial2			The second initial node's UID.
 	 * @param	goal1				The first goal node's UID.
 	 * @param	goal2				The second goal node's UID.
 	 */
 	LOSMMDP(std::string nodesFilename, std::string edgesFilename, std::string landmarksFilename,
-			std::string initial1, std::string initial2, std::string goal1, std::string goal2);
+			std::string goal1, std::string goal2);
 
 	/**
 	 * A deconstructor for the LOSMMDP class.
@@ -119,6 +117,27 @@ public:
 	 */
 	bool save_policy(const PolicyMap *policy, std::string filename,
 			const std::vector<std::unordered_map<const State *, double> > &V) const;
+
+	/**
+	 * Get the initial state, as defined by the constructor's two UIDs.
+	 * @param	initial1		The first initial node's UID.
+	 * @param	initial2		The second initial node's UID.
+	 * @throw	CoreException	Could not find the initial state, or the UIDs were not long ints.
+	 * @return	The initial state.
+	 */
+	const LOSMState *get_initial_state(std::string initial1, std::string initial2) const;
+
+	/**
+	 * Set the weights for the factored weighted rewards.
+	 * @param	weights		The new weight vector.
+	 */
+	void set_rewards_weights(const std::vector<double> &weights);
+
+	/**
+	 * Get the weights for the factored weighted rewards.
+	 * @return	The weight vector.
+	 */
+	const std::vector<double> &get_rewards_weights() const;
 
 private:
 	/**
@@ -199,16 +218,6 @@ private:
 	 * the successor state. Used to save a policy for the visualizer.
 	 */
 	std::unordered_map<const LOSMState *, std::unordered_map<unsigned int, const LOSMState *> > successors;
-
-	/**
-	 * One of the two initial node's UID.
-	 */
-	unsigned long initialNodeUID1;
-
-	/**
-	 * One of the two initial node's UID.
-	 */
-	unsigned long initialNodeUID2;
 
 	/**
 	 * One of the two goal node's UID.

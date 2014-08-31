@@ -102,11 +102,11 @@ PolicyMap *LVI::solve(const LMDP *lmdp)
 	*/
 
 	// Handle the other trivial case in which the slack variables were incorrectly defined.
-	if (lmdp->get_slack()->size() != R->get_num_rewards()) {
+	if (lmdp->get_slack().size() != R->get_num_rewards()) {
 		throw RewardException();
 	}
-	for (int i = 0; i < (int)lmdp->get_slack()->size(); i++) {
-		if ((*lmdp->get_slack())[i] < 0.0) {
+	for (int i = 0; i < (int)lmdp->get_slack().size(); i++) {
+		if (lmdp->get_slack().at(i) < 0.0) {
 			throw RewardException();
 		}
 	}
@@ -119,7 +119,7 @@ PolicyMap *LVI::solve(const LMDP *lmdp)
 	}
 
 	return solve_infinite_horizon(S, A, T, R, s0, h,
-			*lmdp->get_slack(), *lmdp->get_partitions(), *lmdp->get_orderings());
+			lmdp->get_slack(), lmdp->get_partitions(), lmdp->get_orderings());
 }
 
 const std::vector<std::unordered_map<const State *, double> > &LVI::get_V() const
@@ -378,27 +378,15 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 
 		// Copy the final results for these states.
 		for (auto s : Pj) {
-			// Also, update the maximum difference found over all partitions after the subset
-			// of states have had VI executed.
-			if (fabs(V.at(oj[i]).at(s) - VPrime.at(oj[i]).at(s)) > maxDifference[oj[i]]) {
-				maxDifference[oj[i]] = fabs(V.at(oj[i]).at(s) - VPrime.at(oj[i]).at(s));
-			}
+//			// Also, update the maximum difference found over all partitions after the subset
+//			// of states have had VI executed.
+//			if (fabs(V.at(oj[i]).at(s) - VPrime.at(oj[i]).at(s)) > maxDifference[oj[i]]) {
+//				maxDifference[oj[i]] = fabs(V.at(oj[i]).at(s) - VPrime.at(oj[i]).at(s));
+//			}
 
 			V[oj[i]][s] = VPrime.at(oj[i]).at(s);
 		}
 	}
-
-	// Update the maximum difference found over all partitions after the subset
-	// of states have had VI executed. This does not follow the ordering, meaning
-	// that maxDifference stores the differences in order of 1, 2, 3, etc, not
-	// the ordering, e.g., 3, 1, 2, etc. Also, this is equivalent to above.. so remove this.
-//	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
-//		for (auto s : Pj) {
-//			if (fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s)) > maxDifference[i]) {
-//				maxDifference[i] = fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s));
-//			}
-//		}
-//	}
 
 	/*
 	std::cout << "Completed policy for partition. Now computing actual V." << std::endl; std::cout.flush();
@@ -407,7 +395,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 	for (int i = 0; i < R->get_num_rewards(); i++) {
 		std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
 
-		const SASRewards *Ri = static_cast<const SASRewards *>(R->get(oj[i]));
+		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(oj[i]));
 
 		for (auto state : *S) {
 			const State *s = resolve(state);
@@ -415,7 +403,7 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 //			if (std::find(Pj.begin(), Pj.end(), s) != Pj.end()) {
 //				V[oj[i]][s] = 0.0;
 //			} else {
-				V[oj[i]][s] = VStar.at(oj[i]).at(s);
+				V[oj[i]][s] = VPrime.at(oj[i]).at(s);
 //			}
 		}
 
@@ -439,7 +427,19 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 			}
 		}
 	}
-	*/
+	//*/
+
+	// Update the maximum difference found over all partitions after the subset
+	// of states have had VI executed. This does not follow the ordering, meaning
+	// that maxDifference stores the differences in order of 1, 2, 3, etc, not
+	// the ordering, e.g., 3, 1, 2, etc. Also, this is equivalent to above.. so remove this.
+	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
+		for (auto s : Pj) {
+			if (fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s)) > maxDifference[i]) {
+				maxDifference[i] = fabs(VPrime.at(i).at(s) - VFixed.at(i).at(s));
+			}
+		}
+	}
 
 //	std::cout << "Completed partition." << std::endl; std::cout.flush();
 }
