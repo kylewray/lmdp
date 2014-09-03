@@ -165,6 +165,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 
 	std::cout << "Starting...\n"; std::cout.flush();
 
+	//*
 	// ------------------------------------------------------------------------------
 	// ------------------------------------------------------------------------------
 	// ------------------------------------------------------------------------------
@@ -190,7 +191,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	// ------------------------------------------------------------------------------
 	// ------------------------------------------------------------------------------
 	// ------------------------------------------------------------------------------
-
+	//*/
 
 	// Iterate the outer loop until the convergence criterion is satisfied.
 	int counter = 1;
@@ -224,6 +225,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 			}
 		}
 
+		//*
 		// ------------------------------------------------------------------------------
 		// ------------------------------------------------------------------------------
 		// ------------------------------------------------------------------------------
@@ -267,6 +269,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 		// ------------------------------------------------------------------------------
 		// ------------------------------------------------------------------------------
 		// ------------------------------------------------------------------------------
+		//*/
 	}
 
 	std::cout << "Complete LVI." << std::endl; std::cout.flush();
@@ -281,6 +284,8 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		std::vector<std::unordered_map<const State *, double> > &V,
 		PolicyMap *policy, std::vector<double> &maxDifference)
 {
+	std::cout << "LVI Version\n"; std::cout.flush();
+
 	// The value of the states, one for each reward.
 	std::vector<std::unordered_map<const State *, double> > VPrime;
 	VPrime.resize(R->get_num_rewards());

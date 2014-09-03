@@ -27,13 +27,15 @@
 #include "../../librbr/librbr/include/core/states/states_map.h"
 #include "../../librbr/librbr/include/core/actions/actions_map.h"
 #include "../../librbr/librbr/include/core/state_transitions/state_transitions_array.h"
-#include "../../librbr/librbr/include/core/rewards/factored_rewards.h"
+#include "../../librbr/librbr/include/core/rewards/factored_weighted_rewards.h"
 #include "../../librbr/librbr/include/core/rewards/sas_rewards_array.h"
 #include "../../librbr/librbr/include/core/initial.h"
 #include "../../librbr/librbr/include/core/horizon.h"
 
 #include "../../librbr/librbr/include/core/states/indexed_state.h"
 #include "../../librbr/librbr/include/core/actions/indexed_action.h"
+
+#include "../../librbr/librbr/include/core/core_exception.h"
 
 #include <iostream>
 #include <random>
@@ -193,6 +195,27 @@ void GridLMDP::print(const PolicyMap *policy)
         std::cout << std::endl;
 	}
 }
+
+void GridLMDP::set_rewards_weights(const std::vector<double> &weights)
+{
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
+	if (R == nullptr) {
+		throw CoreException();
+	}
+
+	R->set_weights(weights);
+}
+
+const std::vector<double> &GridLMDP::get_rewards_weights() const
+{
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
+	if (R == nullptr) {
+		throw CoreException();
+	}
+
+	return R->get_weights();
+}
+
 
 void GridLMDP::create_states()
 {
@@ -536,8 +559,8 @@ void GridLMDP::create_state_transitions()
 
 void GridLMDP::create_rewards()
 {
-	rewards = new FactoredRewards();
-	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
+	rewards = new FactoredWeightedRewards();
+	FactoredWeightedRewards *R = dynamic_cast<FactoredWeightedRewards *>(rewards);
 
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
@@ -724,5 +747,5 @@ void GridLMDP::create_misc()
 	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
-	horizon = new Horizon(0.99999);
+	horizon = new Horizon(0.9);
 }

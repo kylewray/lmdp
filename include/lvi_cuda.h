@@ -22,52 +22,61 @@
  */
 
 
-#ifndef LVI_NOVA_H
-#define LVI_NOVA_H
+#ifndef LVI_CUDA_H
+#define LVI_CUDA_H
 
 
 #include "lvi.h"
 
 /**
- * Solve a Lexicographic Markov Decision Process (LMDP) with Nova.
+ * Solve a Lexicographic Markov Decision Process (LMDP) with Cuda. This is always the
+ * so-called 'loopingVersion'.
  */
-class LVINova : public LVI {
+class LVICuda : public LVI {
 public:
 	/**
 	 * The default constructor for the LVINova class. The default tolerance is 0.001.
 	 */
-	LVINova();
+	LVICuda();
 
 	/**
 	 * A constructor for the LVINova class which allows for the specification
 	 * of the convergence criterion (tolerance).
 	 * @param	tolerance		The tolerance which determines convergence of value iteration.
 	 */
-	LVINova(double tolerance);
+	LVICuda(double tolerance);
 
 	/**
 	 * The deconstructor for the LVINova class.
 	 */
-	virtual ~LVINova();
+	virtual ~LVICuda();
 
 protected:
 	/**
-	 * Solve an infinite horizon LMDP using value iteration with Nova.
-	 * @param	S							The finite states.
-	 * @param	A							The finite actions.
-	 * @param	T							The finite state transition function.
-	 * @param	R							The factored state-action-state rewards.
-	 * @param	h							The horizon.
-	 * @param	delta						The slack vector.
-	 * @throw	StateTransitionsException	The StateTransitions object was not a StateTransitionsArray.
-	 * @throw	PolicyException				An error occurred computing the policy.
+	 * Solve the infinite horizon MDP for a particular partition of the state space.
+	 * @param	S					The finite states.
+	 * @param	A					The finite actions.
+	 * @param	T					The finite state transition function.
+	 * @param	R					The factored state-action-state rewards.
+	 * @param	h					The horizon.
+	 * @param	delta				The slack vector.
+	 * @param	Pj					The z-partition over states.
+	 * @param	oj					The z-array of orderings over each of the k rewards.
+	 * @param	VFixed				The fixed set of value functions from the previous outer step.
+	 * @param	V					The resultant value of the states. This is updated.
+	 * @param	policy				The policy for the states in the partition. This is updated.
+	 * @param	maxDifference		The maximal difference for convergence checking. This is updated.
+	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	virtual PolicyMap *solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
-			const std::vector<float> &delta);
+	virtual void compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
+			const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
+			const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
+			const std::vector<std::unordered_map<const State *, double> > &VFixed,
+			std::vector<std::unordered_map<const State *, double> > &V,
+			PolicyMap *policy, std::vector<double> &maxDifference);
 
 };
 
 
-#endif // LVI_NOVA_H
+#endif // LVI_CUDA_H

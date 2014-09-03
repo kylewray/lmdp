@@ -95,6 +95,9 @@ class LMDPVisualizer:
         self.showStateNodes = False
         self.selectedNodes = set()
 
+        self.showPolicyValues = True
+        #self.showPolicyValues = False
+
         #self.fastRender = True
         self.fastRender = False
         self.elements = dict()
@@ -762,25 +765,26 @@ class LMDPVisualizer:
                                     renderer.color.b,
                                     renderer.color.a)
 
-            try:
-                renderer.color = self.highlight['policyValueColor']
-            except KeyError:
-                renderer.color = sdl2.ext.Color(0, 0, 0)
+            if self.showPolicyValues:
+                try:
+                    renderer.color = self.highlight['policyValueColor']
+                except KeyError:
+                    renderer.color = sdl2.ext.Color(0, 0, 0)
 
-            fontManager = sdl2.ext.FontManager("/usr/share/fonts/TTF/DejaVuSans.ttf",
-                                                size=self.fontSize,
-                                                color=renderer.color)
-            spriteFactory = sdl2.ext.SpriteFactory(renderer=renderer)
+                fontManager = sdl2.ext.FontManager("/usr/share/fonts/TTF/DejaVuSans.ttf",
+                                                    size=self.fontSize,
+                                                    color=renderer.color)
+                spriteFactory = sdl2.ext.SpriteFactory(renderer=renderer)
 
-            for i, v in enumerate(valueVector):
-                textSprite = spriteFactory.from_text("%.3f" % (v), fontmanager=fontManager)
-                renderer.copy(textSprite, dstrect=(int((node[1] + alpha * 2)[0]),
-                                        int((node[1] + alpha * 2)[1]) + \
-                                                    i * (self.fontSize + 5),
-                                        textSprite.size[0],
-                                        textSprite.size[1]))
+                for i, v in enumerate(valueVector):
+                    textSprite = spriteFactory.from_text("%.3f" % (v), fontmanager=fontManager)
+                    renderer.copy(textSprite, dstrect=(int((node[1] + alpha * 2)[0]),
+                                            int((node[1] + alpha * 2)[1]) + \
+                                                        i * (self.fontSize + 5),
+                                            textSprite.size[0],
+                                            textSprite.size[1]))
 
-            fontManager.close()
+                fontManager.close()
 
 
 if __name__ == "__main__":

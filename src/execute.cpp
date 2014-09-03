@@ -26,7 +26,7 @@
 #include "../include/grid_lmdp.h"
 
 #include "../include/lvi.h"
-#include "../include/lvi_nova.h"
+#include "../include/lvi_cuda.h"
 
 #include "../../librbr/librbr/include/mdp/mdp_value_iteration.h"
 #include "../../librbr/librbr/include/mdp/mdp_utilities.h"
@@ -48,6 +48,8 @@
 int main(int argc, char *argv[]) {
 
 	bool losmVersion = true;
+	bool viWeightCheck = false;
+	bool cudaVersion = true;
 
 	if (losmVersion) {
 		// Ensure the correct number of arguments.
@@ -73,9 +75,15 @@ int main(int argc, char *argv[]) {
 		// Solve the LOSM MDP using LVI.
 		PolicyMap *policy = nullptr;
 
-		LVI solver(0.0001, true); // false);
-		policy = solver.solve(losmMDP);
-//		losmMDP->save_policy(policy, argv[8], solver.get_V());
+		if (cudaVersion) {
+			LVICuda solver(0.0001);
+			policy = solver.solve(losmMDP);
+			losmMDP->save_policy(policy, argv[8], solver.get_V());
+		} else {
+			LVI solver(0.0001, true); // false);
+			policy = solver.solve(losmMDP);
+			losmMDP->save_policy(policy, argv[8], solver.get_V());
+		}
 
 		std::vector<std::unordered_map<const State *, double> > V;
 
@@ -98,42 +106,34 @@ int main(int argc, char *argv[]) {
 		std::cout << "Initial State Value for LVI: ";
 		std::cout << V.at(0).at(initialState) << ", ";
 		std::cout << V.at(1).at(initialState) << std::endl;
-		std::cout << "Initial State Values for VI with Weights:" << std::endl;
 
 		delete policy;
 
 		// Solve the LOSM MDP using VI with various weights, and save the values of the initial state each time.
-		for (double weight = 0.0; weight <= 1.0; weight += 0.1) {
-			losmMDP->set_rewards_weights({weight, 1.0 - weight});
+		if (viWeightCheck) {
+			std::cout << "Initial State Values for VI with Weights:" << std::endl;
 
-			MDPValueIteration viSolver(0.0001);
-			PolicyMap *viPolicy = viSolver.solve(losmMDP);
+			for (double weight = 0.0; weight <= 1.0; weight += 0.1) {
+				losmMDP->set_rewards_weights({weight, 1.0 - weight});
 
-			// 1. The FactoredWeightedRewards is properly called, and the values are properly weighted.
-			// 2. This solver actually iterates a few times (like 15 iterations) and converges... A bit strange, but OK.
-			// 3. The final values of V are the same, regardless of the weights... This is a bit strange.
-			// 4. The actual 'compute_V_pi' method works, iterates properly, etc.
-			// 5. It is intentional to use 'FactoredRewards' for both above and here since we want to compare the actual
-			//		values of the states following the policy.
-			// 6. I have commented all the above code for LVI and just ran the weight code with VI. It is the same.
+				MDPValueIteration viSolver(0.0001);
+				PolicyMap *viPolicy = viSolver.solve(losmMDP);
 
-			// SUMMARY: As far as I can tell, it all works, and the **actual policy** itself is **identical** for ALL weights
-			// as well as the LVI approach...
+				compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
+							dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
+							losmMDP->get_state_transitions(),
+							dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
+							losmMDP->get_horizon(),
+							0.0001,
+							viPolicy,
+							V);
 
-			compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
-						dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
-						losmMDP->get_state_transitions(),
-						dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
-						losmMDP->get_horizon(),
-						0.0001,
-						viPolicy,
-						V);
+				std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]: ";
+				std::cout << V.at(0).at(initialState) << ", ";
+				std::cout << V.at(1).at(initialState) << std::endl;
 
-			std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]: ";
-			std::cout << V.at(0).at(initialState) << ", ";
-			std::cout << V.at(1).at(initialState) << std::endl;
-
-			delete viPolicy;
+				delete viPolicy;
+			}
 		}
 
 		delete losmMDP;
@@ -154,19 +154,45 @@ int main(int argc, char *argv[]) {
 
 		PolicyMap *policy = nullptr;
 
-//		LVI solver(0.0001, false);
-		LVI solver(0.0001, true);
+		if (cudaVersion) {
+			LVICuda solver(0.0001);
+			policy = solver.solve(gridLMDP);
+		} else {
+//			LVI solver(0.0001, false);
+			LVI solver(0.0001, true);
+			policy = solver.solve(gridLMDP);
+		}
 
-		policy = solver.solve(gridLMDP);
 		gridLMDP->print(policy);
 
-//		delete policy;
-//
-//		LVINova novaSolver(0.0001);
-//		policy = novaSolver.solve(gridLMDP);
-//		gridLMDP->print(policy);
-
 		delete policy;
+
+		std::vector<std::unordered_map<const State *, double> > V;
+
+		// Solve the Grid MDP using VI with various weights, and save the values of the initial state each time.
+		if (viWeightCheck) {
+			for (double weight = 0.0; weight <= 0.8; weight += 0.1) {
+				gridLMDP->set_rewards_weights({0.2, weight, 0.8 - weight});
+
+				MDPValueIteration viSolver(0.0001);
+				PolicyMap *viPolicy = viSolver.solve(gridLMDP);
+
+				compute_V_pi(dynamic_cast<const StatesMap *>(gridLMDP->get_states()),
+							dynamic_cast<const ActionsMap *>(gridLMDP->get_actions()),
+							gridLMDP->get_state_transitions(),
+							dynamic_cast<const FactoredRewards *>(gridLMDP->get_rewards()),
+							gridLMDP->get_horizon(),
+							0.0001,
+							viPolicy,
+							V);
+
+				std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]:" << std::endl;
+				gridLMDP->print(viPolicy);
+
+				delete viPolicy;
+			}
+		}
+
 		delete gridLMDP;
 
 	}

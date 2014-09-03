@@ -81,6 +81,18 @@ public:
 	 */
 	void print(const PolicyMap *policy);
 
+	/**
+	 * Set the weights for the factored weighted rewards.
+	 * @param	weights		The new weight vector.
+	 */
+	void set_rewards_weights(const std::vector<double> &weights);
+
+	/**
+	 * Get the weights for the factored weighted rewards.
+	 * @return	The weight vector.
+	 */
+	const std::vector<double> &get_rewards_weights() const;
+
 private:
 	/**
 	 * Create the LMDP's states.
