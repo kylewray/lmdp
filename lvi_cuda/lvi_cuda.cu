@@ -35,9 +35,10 @@
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
 
-__global__ void lvi_bellman_update(unsigned int n, unsigned int z, const unsigned int *Pj,
-		unsigned int m, const bool *A, const float *T, const float *R, float gamma,
-		const float *Vi, float *ViPrime, unsigned int *pi)
+__global__ void lvi_bellman_update(unsigned int n, unsigned int z, unsigned int m,
+		const bool *A, const unsigned int *Pj, const float *T, const float *Ri, unsigned int *pi,
+		float gamma, const float *Vi,
+		float *ViPrime)
 {
 	// The current state as a function of the blocks and threads.
 	int s;
@@ -68,7 +69,7 @@ __global__ void lvi_bellman_update(unsigned int n, unsigned int z, const unsigne
 		Qsa = 0.0f;
 		for (int sp = 0; sp < n; sp++) {
 			k = Pj[s] * m * n + a * n + sp;
-			Qsa += T[k] * (R[k] + gamma * Vi[sp]);
+			Qsa += T[k] * (Ri[k] + gamma * Vi[sp]);
 		}
 
 		if (a == 0 || Qsa > ViPrime[Pj[s]]) {
@@ -78,28 +79,138 @@ __global__ void lvi_bellman_update(unsigned int n, unsigned int z, const unsigne
 	}
 }
 
-int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, const bool *A,
-		const float *T, const float *R, float Rmin, float Rmax, float gamma, float epsilon,
-		float *Vi, unsigned int *pi, unsigned int numBlocks, unsigned int numThreads)
+int lvi_initialize_state_transitions(unsigned int n, unsigned int m, const float *T, float *&d_T)
+{
+	// Ensure the data is valid.
+	if (n == 0 || m == 0 || T == nullptr) {
+		return -1;
+	}
+
+	// Allocate the memory on the device.
+	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to allocate device-side memory for the state transitions.");
+		return -3;
+	}
+
+	// Copy the data from the host to the device.
+	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to copy memory from host to device for the state transitions.");
+		return -3;
+	}
+
+	return 0;
+}
+
+int lvi_initialize_rewards(unsigned int n, unsigned int m, const float *R, float *&d_R)
+{
+	// Ensure the data is valid.
+	if (n == 0 || m == 0 || R == nullptr) {
+		return -1;
+	}
+
+	// Allocate the memory on the device.
+	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to allocate device-side memory for the rewards.");
+		return -3;
+	}
+
+	// Copy the data from the host to the device.
+	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to copy memory from host to device for the rewards.");
+		return -3;
+	}
+
+	return 0;
+}
+
+int lvi_initialize_partition(unsigned int z,
+		const unsigned int *Pj, const unsigned int *pi,
+		unsigned int *&d_Pj, unsigned int *&d_pi)
+{
+	// Ensure the data is valid.
+	if (z == 0 || Pj == nullptr || pi == nullptr) {
+		return -1;
+	}
+
+	// Allocate the memory on the device.
+	if (cudaMalloc(&d_Pj, z * sizeof(unsigned int)) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to allocate device-side memory for the partition array.");
+		return -3;
+	}
+
+	if (cudaMalloc(&d_pi, z * sizeof(unsigned int)) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to allocate device-side memory for the policy (pi).");
+		return -3;
+	}
+
+	// Copy the data from the host to the device.
+	if (cudaMemcpy(d_Pj, Pj, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to copy memory from host to device for the partition array.");
+		return -3;
+	}
+
+	if (cudaMemcpy(d_pi, pi, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to copy memory from host to device for the policy (pi).");
+		return -3;
+	}
+
+	return 0;
+}
+
+int lvi_get_policy(unsigned int z, const unsigned int *d_pi, unsigned int *pi)
+{
+	if (cudaMemcpy(pi, d_pi, z * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Failed to copy memory from device to host for the policy (pi).");
+		return -3;
+	}
+
+	return 0;
+}
+
+int lvi_uninitialize(float *&d_T,
+		unsigned int k, float **&d_R,
+		unsigned int ell, unsigned int **&d_P, unsigned int **&d_pi)
+{
+	cudaFree(d_T);
+
+	for (int i = 0; i < k ; i++) {
+		cudaFree(d_R[i]);
+	}
+
+	for (int j = 0; j < ell; j++) {
+		cudaFree(d_P[j]);
+		cudaFree(d_pi[j]);
+	}
+
+	return 0;
+}
+
+int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
+		const float *d_T, const float *d_Ri, const unsigned int *d_Pj, unsigned int *d_pi,
+		float Rmin, float Rmax, float gamma, float epsilon,
+		unsigned int numBlocks, unsigned int numThreads,
+		float *Vi)
 {
 	// The device pointers for the MDP: A, T, and R.
 	bool *d_A;
-	float *d_T;
-	float *d_R;
 
 	// The host and device pointers for the value functions: V and VPrime.
 	float *d_Vi;
 	float *d_ViPrime;
 
-	// The partition of states as an array of state indices.
-	unsigned int *d_Pj;
-
-	// The device pointer for the final policy: pi.
-	unsigned int *d_pi;
-
 	// First, ensure data is valid.
-	if (n == 0 || z == 0 || Pj == nullptr || m == 0 || A == nullptr || T == nullptr || R == nullptr ||
-			gamma < 0.0f || gamma >= 1.0f || pi == nullptr) {
+	if (n == 0 || z == 0 || m == 0 || A == nullptr ||
+			d_Pj == nullptr || d_T == nullptr || d_Ri == nullptr || d_pi == nullptr ||
+			gamma < 0.0f || gamma >= 1.0f) {
 		return -1;
 	}
 
@@ -109,22 +220,12 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 	}
 
 	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = 100; // (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+	int iterations = (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
 
 	// Allocate the device-side memory.
 	if (cudaMalloc(&d_A, z * m * sizeof(bool)) != cudaSuccess) {
 		fprintf(stderr, "Error[lvi_cuda]: %s",
 				"Failed to allocate device-side memory for the restricted actions.");
-		return -3;
-	}
-	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to allocate device-side memory for the state transitions.");
-		return -3;
-	}
-	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to allocate device-side memory for the rewards.");
 		return -3;
 	}
 
@@ -136,18 +237,6 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 	if (cudaMalloc(&d_ViPrime, n * sizeof(float)) != cudaSuccess) {
 		fprintf(stderr, "Error[lvi_cuda]: %s",
 				"Failed to allocate device-side memory for the value function (prime).");
-		return -3;
-	}
-
-	if (cudaMalloc(&d_Pj, z * sizeof(unsigned int)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to allocate device-side memory for the partition array.");
-		return -3;
-	}
-
-	if (cudaMalloc(&d_pi, z * sizeof(unsigned int)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to allocate device-side memory for the policy (pi).");
 		return -3;
 	}
 
@@ -164,16 +253,6 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 				"Failed to copy memory from host to device for the restricted actions.");
 		return -3;
 	}
-	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to copy memory from host to device for the state transitions.");
-		return -3;
-	}
-	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to copy memory from host to device for the rewards.");
-		return -3;
-	}
 
 	if (cudaMemcpy(d_Vi, Vi, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		fprintf(stderr, "Error[lvi_cuda]: %s",
@@ -186,18 +265,6 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 		return -3;
 	}
 
-	if (cudaMemcpy(d_Pj, Pj, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to copy memory from host to device for the partition array.");
-		return -3;
-	}
-
-	if (cudaMemcpy(d_pi, pi, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to copy memory from host to device for the policy (pi).");
-		return -3;
-	}
-
 	// Execute value iteration for these number of iterations. For each iteration, however,
 	// we will run the state updates in parallel.
 	printf("Total Number of Iterations: %i\n", iterations);
@@ -206,9 +273,9 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 //		printf("Blocks: %d\nThreads: %d\nGamma: %f\nn: %d\nm: %d\n", numBlocks, numThreads, gamma, n, m);
 
 		if (i % 2 == 0) {
-			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, d_Pj, m, d_A, d_T, d_R, gamma, d_Vi, d_ViPrime, d_pi);
+			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_Vi, d_ViPrime);
 		} else {
-			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, d_Pj, m, d_A, d_T, d_R, gamma, d_ViPrime, d_Vi, d_pi);
+			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_ViPrime, d_Vi);
 		}
 	}
 
@@ -226,11 +293,6 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 			return -3;
 		}
 	}
-	if (cudaMemcpy(pi, d_pi, z * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
-				"Failed to copy memory from device to host for the policy (pi).");
-		return -3;
-	}
 
 //	for (int s = 0; s < n; s++) {
 //		printf("V[%d] =   %f\t", s, V[s]);
@@ -241,15 +303,9 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int *Pj, unsigned int m, c
 
 	// Free the device-side memory.
 	cudaFree(d_A);
-	cudaFree(d_T);
-	cudaFree(d_R);
 
 	cudaFree(d_Vi);
 	cudaFree(d_ViPrime);
-
-	cudaFree(d_Pj);
-
-	cudaFree(d_pi);
 
 	return 0;
 }
