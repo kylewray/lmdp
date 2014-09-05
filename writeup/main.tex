@@ -9,6 +9,10 @@
 \setlength{\pdfpagewidth}{8.5in}
 \setlength{\pdfpageheight}{11in}
 
+%% SZ; for submission only
+\setlength{\titlebox}{1.75in}
+\nocopyright   
+
 % \usepackage[numbers]{natbib}            % Bibliography
 \usepackage{amsmath}                    % For Math Proofs
 \usepackage{amsthm}                     % For Math Proofs
@@ -25,6 +29,7 @@
 \theoremstyle{definition}
 \newtheorem{problem}{Problem}
 \newtheorem{assumption}{Assumption}
+\newtheorem{example}{Example}
 \newtheorem{definition}{Definition}
 \newtheorem{notation}{Notation}
 \newtheorem{theorem}{Theorem}
@@ -43,26 +48,28 @@
 /Title (Multi-Objective MDPs with Lexicographic Reward Preferences)
 /Author (Kyle Hollins Wray, Shlomo Zilberstein, Abdel-Illah Mouaddib)}
 
-\setcounter{secnumdepth}{0}
+\setcounter{secnumdepth}{1}
 
 \title{Multi-Objective MDPs with Lexicographic Reward Preferences}
 
-\author{Kyle Hollins Wray \and Shlomo Zilberstein \\
-  University of Massachusetts \\
-  Amherst, MA 01003, USA \\
-  {\tt \{wray, shlomo\}@cs.umass.edu} \And
-  Abdel-Illah Mouaddib \\
-  GREYC - Univeaite de Caen \\
-  Bd Marechal Juin, BP 5186 \\
-  F14032 Caen Cedex, France \\
-  {\tt mouaddib@info.unicaen.fr}}
+\author{AAAI Submission \#}
+
+%\author{Kyle Hollins Wray \and Shlomo Zilberstein \\
+%  University of Massachusetts \\
+%  Amherst, MA 01003, USA \\
+%  {\tt \{wray, shlomo\}@cs.umass.edu} \And
+%  Abdel-Illah Mouaddib \\
+%  GREYC - Univeaite de Caen \\
+%  Bd Marechal Juin, BP 5186 \\
+%  F14032 Caen Cedex, France \\
+%  {\tt mouaddib@info.unicaen.fr}}
 
 
 \begin{document}
 
 \maketitle
 
-% \input{0_abstract}
+\input{0_abstract}
 
 \input{1_introduction}
 
@@ -72,19 +79,19 @@
 
 \input{4_experimentation}
 
-\input{5_related_work}
+\input{5_discussion}
 
-% \input{5_experimentation}
+\input{6_conclusion}
 
-% \input{6_discussion}
+\input{7_acknowledgements}
 
-% \input{7_related_work}
-
-% \input{8_conclusion}
-
-% \input{9_acknowledgements}
+\newpage
 
 \bibliographystyle{aaai}
 \bibliography{references}
+
+\newpage
+
+\input{8_supplement}
 
 \end{document}

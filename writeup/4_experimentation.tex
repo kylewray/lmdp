@@ -1,52 +1,32 @@
 \section{Experimentation}
 \label{sec:experimentation}
 
-This section is just to provide some initial experiments.
+Semi-autonomous systems explore efficient policy execution involving the optimal transfer of control between human and agent. Our focus is on semi-autonomous driving, namely the optimal policy to adapt to a human's level of fatigue.
 
-\subsection{Grid World with Dead Ends}
-First, we implemented a model similar to the classic grid world problem. The agent may move north, south, east, and west in a $w$-by-$h$ grid world. The agent moves successfully with a $0.8$ probability, and fails by moving right or left, each with a $0.1$ probability. At the edges, if the agent cannot move, it remains still.
+The LMDP consists of states formed by a 4-tuple: current intersection, previous intersection, driver tired (true/false), and autonomy (enabled/disabled). Actions are taken at intersections, as found in path planning in graphs (e.g., GPS). Due to real world limitations, autonomy can only be enabled on main roads and highways; in our case, this means a speed limit greater than or equal to 30 miles per hour.
 
-Throughout the area, dead ends are placed (denoted by ``-'') as well as goal states (denoted by ``+''). In the normal MDP version, dead ends have a reward of $-\infty$, and only have a positive weight of $1.0$ on the transition probability for remaining in the dead end. Goal states have a reward of $1.0$, and all other states have a small penalty of $-0.03$.
+% TODO: Cite UMass M.Eng. lab's paper.
 
-In our MOMDP with lexicographic reward function model, we separate the dead ends and goal states into two reward functions. The first reward $R_1$ provides a $0.0$ reward for all states, and a $-1.0$ reward for transitioning to a dead end. The second reward $R_2$ yields a $1.0$ for transitioning to a goal state, and a $-0.03$ for all other states.
+Actions are simply which road to take at each intersection and, if the road allows, whether or not to enable autonomy. We aim to follow the extensive body of engineering and psychological research on driver fatigue~\cite{Ji04-RealTimeMonitoringDriverFatigue}. As such, the stochasticity within state transitions considers the probability that the driver moves from awake to tired, with a probability of 0.9.
 
-We implemented this initial test in Python 2.7. Figures~\ref{fig:seed_1},~\ref{fig:seed_2}, and~\ref{fig:seed_3} show some example output from the model in this domain. Interestingly, it appears to work very well at strictly avoiding dead ends, and then optimizing around the remaining action possibilities.
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.4\textwidth,bb=0 0 279 280]{seed_1.png}
-    \caption{First example's policy.}
-    \label{fig:seed_1}
+There are two reward functions: time and autonomy. The time reward (cost) is proportional to the time spent on the road (in seconds), plus a small constant expected value of 5 (seconds) to model time spent at a traffic light, slowing down turning, or waiting for others. The autonomy reward (cost) is proportional to the time spent on the road, but is only applied if the driver is tired; otherwise, there is an epsilon penalty. For both rewards, the goal state is an absorbing state which awards zero.
+
+It is natural to define the problem in terms of strictly optimizing time when the driver is awake, and strictly optimizing autonomy when the driver is tired. We also allow for a 10 second slack in the expected time to reach the goal (i.e., time reward), in order to favor the ease of autonomy if available.
+
+Figure~\ref{fig:example_policy} shows an example optimal policy returned by LVI for a few roads north of Boston Commons. Each road at an intersection has an action, denoted by the arrows. Green arrows denote that autonomy was disabled; purple arrows denote that autonomy was enabled. The blue colored roads show autonomy-capability. % TODO: Explain image in Discussion.
+
+\begin{figure}% [H]
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{awake.eps} \\
+    \includegraphics[width=0.75\linewidth]{tired.eps}
+    \caption{The policy for awake (above) versus tired (below).}
+    \label{fig:example_policy}
+\end{center}
 \end{figure}
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.4\textwidth,bb=0 0 561 81]{seed_2.png}
-    \caption{Second example's policy.}
-    \label{fig:seed_2}
-\end{figure}
+% TODO: Include table for multiple cities, say 5, with state space size |S|, action size |A|, and the times for CPU vs CUDA (possibly varying blocks and threads). Compare with VI under fixed weights.
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.4\textwidth,bb=0 0 418 416]{seed_3.png}
-    \caption{Third example's policy.}
-    \label{fig:seed_3}
-\end{figure}
+% TODO: Describe the CUDA implementation of LVI.
 
-There are additional scenarios for which $\lvmax$ is useful. If there are primary and secondary goals, they can be represented by different rewards, with primary goal states strictly favored over secondary goal states.
+% TODO: State machine specs.
 
-\begin{itemize}
-    \item If there exists a perfect policy, then it seems to always converge with $\gamma = 1$. The convergent policy always strictly avoids the dead ends, as desired.
-    \item Without a perfect policy, it converges but the policy can often be off if a lot of dead ends are close to one another. This is probably one example where the slack variables $\delta_1, \ldots, \delta_k$ could be useful.
-    \item These results do not utilize the slack variables: $\delta_1, \ldots, \delta_k$.
-\end{itemize}
-
-
-\subsection{Multi-Objective Autonomous Driving}
-
-To demonstrate the usefulness of both the lexicographic ordering as well as the slack variables, we are considering the autonomous driving domain. We will consider a path planning agent acting over an OpenStreetMap graph, which strictly prefers: shorter time/distance $>$ saving fuel/money $>$ stopping at optional amenities.
-
-Our agent has some slack in optimizing the distance traveled. This allows for it to take an extra 5 minutes to go a bit out of the way in order to save some fuel, or stop at an optional amenity. This same slack holds for the other value functions as well.
-
-We also can model dead ends in this domain. Consider an agent that can choose to drive faster. This might result in a ticket if they drive too fast an get caught, which could be considered a dead end.
-
-This is currently being developed in C++, with supporting scripts to read the OpenStreetMap (OSM) file format written in Python.
