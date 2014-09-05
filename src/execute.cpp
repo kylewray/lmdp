@@ -45,11 +45,11 @@
 #include <iostream>
 #include <unordered_map>
 
-int main(int argc, char *argv[]) {
-
-	bool losmVersion = true;
-	bool viWeightCheck = false;
-	bool cudaVersion = true;
+int main(int argc, char *argv[])
+{
+	bool losmVersion = false;
+	bool viWeightCheck = true;
+	bool cudaVersion = false;
 
 	if (losmVersion) {
 		// Ensure the correct number of arguments.

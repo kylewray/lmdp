@@ -195,6 +195,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 
 	// Iterate the outer loop until the convergence criterion is satisfied.
 	int counter = 1;
+//	while (counter < 30) {
 	while (!converged) {
 		// Update VFixed to the previous value of V.
 		for (auto state : *S) {
@@ -233,16 +234,28 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 		// Print out the iteration's convergence table result.
 		printf("Iteration %-3i [ ", counter);
 
+		float convergingMax = 0.0;
+
 		for (int j = 0; j < (int)P.size(); j++) {
+			int convergedIndex = 1;
+
 			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 				// NOTE: Some value functions in the ordering may converge before the ones before them, but this is
 				// not guaranteed. The only guarantee is that once a 'parent' has converged, its 'child' will converge.
 				// Eventually, this must include all value functions over all partitions.
 				if (difference[j][o[j][i]] > convergenceCriterion) {
 					std::cout << "x ";
+
+					convergedIndex--;
 				} else {
 					std::cout << "o ";
 				}
+
+//				if (convergedIndex >= 0) {
+					if (difference[j][o[j][i]] > convergingMax) {
+						convergingMax = difference[j][o[j][i]];
+					}
+//				}
 			}
 
 			if (j != (int)P.size() - 1) {
@@ -262,7 +275,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 			}
 		}
 
-		std::cout << std::endl; std::cout.flush();
+		std::cout << "\t\t" << convergingMax << std::endl; std::cout.flush();
 
 		counter++;
 
@@ -284,8 +297,6 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 		std::vector<std::unordered_map<const State *, double> > &V,
 		PolicyMap *policy, std::vector<double> &maxDifference)
 {
-	std::cout << "LVI Version\n"; std::cout.flush();
-
 	// The value of the states, one for each reward.
 	std::vector<std::unordered_map<const State *, double> > VPrime;
 	VPrime.resize(R->get_num_rewards());

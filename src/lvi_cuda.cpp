@@ -268,8 +268,8 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 							(float)Ri->get_max(),
 							(float)h->get_discount_factor(),
 							(float)epsilon,
-							(unsigned int)std::ceil((double)Pj.size() / 1024.0),
-							(unsigned int)1024,
+							(unsigned int)std::ceil((double)Pj.size() / 512.0),
+							(unsigned int)512,
 							cudaVi);
 
 		if (result == 0) {
@@ -408,7 +408,7 @@ void LVICuda::initialize_variables(const StatesMap *S, const ActionsMap *A, cons
 void LVICuda::uninitialize_variables(unsigned int k, unsigned int ell)
 {
 	if (cudaP != nullptr) {
-		for (int j = 0; j < ell; j++) {
+		for (int j = 0; j < (int)ell; j++) {
 			delete [] cudaP[j];
 		}
 		delete [] cudaP;
@@ -416,7 +416,7 @@ void LVICuda::uninitialize_variables(unsigned int k, unsigned int ell)
 	cudaP = nullptr;
 
 	if (cudaPI != nullptr) {
-		for (int j = 0; j < ell; j++) {
+		for (int j = 0; j < (int)ell; j++) {
 			delete [] cudaPI[j];
 		}
 		delete [] cudaPI;
