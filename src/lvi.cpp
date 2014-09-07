@@ -42,12 +42,14 @@
 
 #include "../../librbr/librbr/include/core/actions/action_utilities.h"
 
-#include <iostream> // TODO: Remove this after debug statements have been removed.
+#include <iostream>
 
 #include <math.h>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+
+#include <chrono> // New High-Resolution Time for C++11!
 
 LVI::LVI()
 {
@@ -163,6 +165,9 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 		difference[j].resize(R->get_num_rewards());
 	}
 
+	// After setting up everything, begin timing.
+	auto start = std::chrono::high_resolution_clock::now();
+
 	std::cout << "Starting...\n"; std::cout.flush();
 
 	//*
@@ -237,7 +242,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 		float convergingMax = 0.0;
 
 		for (int j = 0; j < (int)P.size(); j++) {
-			int convergedIndex = 1;
+//			int convergedIndex = 1;
 
 			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 				// NOTE: Some value functions in the ordering may converge before the ones before them, but this is
@@ -246,7 +251,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 				if (difference[j][o[j][i]] > convergenceCriterion) {
 					std::cout << "x ";
 
-					convergedIndex--;
+//					convergedIndex--;
 				} else {
 					std::cout << "o ";
 				}
@@ -286,6 +291,11 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	}
 
 	std::cout << "Complete LVI." << std::endl; std::cout.flush();
+
+	// After the main loop is complete, end timing. Also, output the result of the computation time.
+	auto end = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	std::cout << "Total Elapsed Time (CPU Version): " << elapsed.count() << std::endl; std::cout.flush();
 
 	return policy;
 }

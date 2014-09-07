@@ -47,9 +47,10 @@
 
 int main(int argc, char *argv[])
 {
-	bool losmVersion = false;
+	bool losmVersion = true;
 	bool viWeightCheck = true;
-	bool cudaVersion = false;
+	bool cudaVersion = true;
+	bool printGrid = false;
 
 	if (losmVersion) {
 		// Ensure the correct number of arguments.
@@ -85,27 +86,29 @@ int main(int argc, char *argv[])
 			losmMDP->save_policy(policy, argv[8], solver.get_V());
 		}
 
-		std::vector<std::unordered_map<const State *, double> > V;
-
-		compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
-						dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
-						losmMDP->get_state_transitions(),
-						dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
-						losmMDP->get_horizon(),
-						0.0001,
-						policy,
-						V);
-
-		// Saving it with this V means the actual value of the policy: V^\pi, versus V^\eta ('solver.get_V()').
-		losmMDP->save_policy(policy, argv[8], V);
-
 		// Before we start this VI loop, get the initial state.
 		const LOSMState *initialState = losmMDP->get_initial_state(argv[4], argv[5]);
 
-		// Output the initial state's value for this policy.
-		std::cout << "Initial State Value for LVI: ";
-		std::cout << V.at(0).at(initialState) << ", ";
-		std::cout << V.at(1).at(initialState) << std::endl;
+		std::vector<std::unordered_map<const State *, double> > V;
+
+		if (viWeightCheck) {
+			compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
+							dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
+							losmMDP->get_state_transitions(),
+							dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
+							losmMDP->get_horizon(),
+							0.0001,
+							policy,
+							V);
+
+			// Saving it with this V means the actual value of the policy: V^\pi, versus V^\eta ('solver.get_V()').
+			losmMDP->save_policy(policy, argv[8], V);
+
+			// Output the initial state's value for this policy.
+			std::cout << "Initial State Value for LVI: ";
+			std::cout << V.at(0).at(initialState) << ", ";
+			std::cout << V.at(1).at(initialState) << std::endl;
+		}
 
 		delete policy;
 
@@ -114,6 +117,8 @@ int main(int argc, char *argv[])
 			std::cout << "Initial State Values for VI with Weights:" << std::endl;
 
 			for (double weight = 0.0; weight <= 1.0; weight += 0.1) {
+				V.clear();
+
 				losmMDP->set_rewards_weights({weight, 1.0 - weight});
 
 				MDPValueIteration viSolver(0.0001);
@@ -163,15 +168,39 @@ int main(int argc, char *argv[])
 			policy = solver.solve(gridLMDP);
 		}
 
-		gridLMDP->print(policy);
-
-		delete policy;
+		// Before we start this VI loop, get the initial state.
+		const State *initialState = dynamic_cast<const StatesMap *>(gridLMDP->get_states())->get(0);
 
 		std::vector<std::unordered_map<const State *, double> > V;
+
+		if (viWeightCheck) {
+			compute_V_pi(dynamic_cast<const StatesMap *>(gridLMDP->get_states()),
+							dynamic_cast<const ActionsMap *>(gridLMDP->get_actions()),
+							gridLMDP->get_state_transitions(),
+							dynamic_cast<const FactoredRewards *>(gridLMDP->get_rewards()),
+							gridLMDP->get_horizon(),
+							0.0001,
+							policy,
+							V);
+
+			// Output the initial state's value for this policy.
+			std::cout << "Initial State Value for LVI: ";
+			std::cout << V.at(0).at(initialState) << ", ";
+			std::cout << V.at(1).at(initialState) << ", ";
+			std::cout << V.at(2).at(initialState) << std::endl;
+		}
+
+		if (printGrid) {
+			gridLMDP->print(policy);
+		}
+
+		delete policy;
 
 		// Solve the Grid MDP using VI with various weights, and save the values of the initial state each time.
 		if (viWeightCheck) {
 			for (double weight = 0.0; weight <= 0.8; weight += 0.1) {
+				V.clear();
+
 				gridLMDP->set_rewards_weights({0.2, weight, 0.8 - weight});
 
 				MDPValueIteration viSolver(0.0001);
@@ -186,8 +215,14 @@ int main(int argc, char *argv[])
 							viPolicy,
 							V);
 
-				std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]:" << std::endl;
-				gridLMDP->print(viPolicy);
+				std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]: ";
+				std::cout << V.at(0).at(initialState) << ", ";
+				std::cout << V.at(1).at(initialState) << ", ";
+				std::cout << V.at(2).at(initialState) << std::endl;
+
+				if (printGrid) {
+					gridLMDP->print(viPolicy);
+				}
 
 				delete viPolicy;
 			}

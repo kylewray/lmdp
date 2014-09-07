@@ -220,7 +220,7 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 	}
 
 	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+	int iterations = max(10, (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma))));
 
 	// Allocate the device-side memory.
 	if (cudaMalloc(&d_A, z * m * sizeof(bool)) != cudaSuccess) {
@@ -267,7 +267,7 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 
 	// Execute value iteration for these number of iterations. For each iteration, however,
 	// we will run the state updates in parallel.
-	printf("Total Number of Iterations: %i\n", iterations);
+//	printf("Total Number of Iterations: %i\n", iterations);
 	for (int i = 0; i < iterations; i++) {
 //		printf("Iteration %d / %d\n", i, iterations);
 //		printf("Blocks: %d\nThreads: %d\nGamma: %f\nn: %d\nm: %d\n", numBlocks, numThreads, gamma, n, m);

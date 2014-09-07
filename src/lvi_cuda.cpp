@@ -17,6 +17,10 @@
 #include <iostream>
 #include <algorithm>
 
+#include <chrono> // New High-Resolution Time for C++11!
+
+//#define SHOW_DETAILED_TIMING
+
 LVICuda::LVICuda()
 {
 	epsilon = 0.001;
@@ -83,6 +87,9 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 	for (int j = 0; j < (int)P.size(); j++) {
 		difference[j].resize(R->get_num_rewards());
 	}
+
+	// After setting up everything, begin timing.
+	auto start = std::chrono::high_resolution_clock::now();
 
 	std::cout << "Starting...\n"; std::cout.flush();
 
@@ -195,6 +202,11 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 
 	std::cout << "Complete LVI." << std::endl; std::cout.flush();
 
+	// After the main loop is complete, end timing. Also, output the result of the computation time.
+	auto end = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	std::cout << "Total Elapsed Time (GPU Version): " << elapsed.count() << std::endl; std::cout.flush();
+
 	uninitialize_variables(R->get_num_rewards(), P.size());
 
 	return policy;
@@ -255,6 +267,10 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 			}
 		}
 
+#ifdef SHOW_DETAILED_TIMING
+		auto start = std::chrono::high_resolution_clock::now();
+#endif
+
 		// Run value iteration optimized with CUDA!
 		int result = lvi_cuda(S->get_num_states(),
 							Pj.size(),
@@ -272,6 +288,12 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 							(unsigned int)512,
 							cudaVi);
 
+#ifdef SHOW_DETAILED_TIMING
+		auto end = std::chrono::high_resolution_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		std::cout << "Total Elapsed Time (GPU Version, CUDA Reward " << (i + 1) << "): " << elapsed.count() << std::endl; std::cout.flush();
+#endif
+
 		if (result == 0) {
 			for (int state = 0; state < (int)Pj.size(); state++) {
 				const State *s = Pj.at(state);
@@ -288,15 +310,30 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 
 		// After everything, we can finally compute the set of actions ***for i + 1*** with the delta slack.
 		if (i != (int)R->get_num_rewards() - 1) {
+#ifdef SHOW_DETAILED_TIMING
+			auto start = std::chrono::high_resolution_clock::now();
+#endif
+
 			for (auto s : Pj) {
 				// Use the delta function to compute the final set of AStar[i + 1].
 				// NOTE: Intentionally, we use [s] for AStar, because this has not yet been defined for i + 1. This
 				// creates the vector for state s in place.
 				compute_A_delta(S, AStar.at(oj[i]).at(s), T, Ri, h, s, V.at(oj[i]), delta[oj[i]], AStar.at(oj[i + 1])[s]);
 			}
+
+#ifdef SHOW_DETAILED_TIMING
+			auto end = std::chrono::high_resolution_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+			std::cout << "Total Elapsed Time (GPU Version, Compute AStar): " << elapsed.count() << std::endl; std::cout.flush();
+#endif
+
 		} else {
+#ifdef SHOW_DETAILED_TIMING
+			auto start = std::chrono::high_resolution_clock::now();
+#endif
+
 			// This must be the final reward, so instead of computing AStar[oj[i + 1]], we compute the action selected!
-			lvi_get_policy(Pj.size(), d_P[j], cudaP[j]);
+			lvi_get_policy(Pj.size(), d_pi[j], cudaPI[j]);
 
 			if (result == 0) {
 				for (int state = 0; state < (int)Pj.size(); state++) {
@@ -317,7 +354,13 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 
 				throw PolicyException();
 			}
-		}
+
+#ifdef SHOW_DETAILED_TIMING
+			auto end = std::chrono::high_resolution_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+			std::cout << "Total Elapsed Time (GPU Version, Copying Policy): " << elapsed.count() << std::endl; std::cout.flush();
+#endif
+			}
 
 		// Free the memory at each loop, since the MDP has been solved now.
 		delete cudaVi;
@@ -336,7 +379,7 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 		}
 	}
 
-	std::cout << "Completed partition." << std::endl; std::cout.flush();
+//	std::cout << "Completed partition." << std::endl; std::cout.flush();
 }
 
 void LVICuda::initialize_variables(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
