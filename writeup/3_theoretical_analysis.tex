@@ -3,6 +3,7 @@
 
 First we show in Proposition~\ref{prop:lvi_eta} proves that $\eta_i$ from Equation~\ref{eq:restricted_actions_set} may be defined as $(1 - \gamma) \delta_i$ to bound the final deviation from the optimal value of a state by $\delta_i$, for $i \in K$. This is designed to be a worst-case guarantee that considers each state selects an action as far from optimal as it can, given the slack allocated to it. The accumulation of error over all states is bounded by $\delta$; in practice, this very strong constraint can be relaxed, if desired.
 
+
 \begin{proposition}
     \label{prop:lvi_eta}
     For all $j \in L$, for $i \in K$, assume $1, \ldots, i - 1$ has converged. Let $V^\eta$ be the value functions returned following Equation~\ref{eq:lvi}; Lines 7-10. Let $V^\pi$ be the value functions returned by value iteration, following the resulting optimal policy $\pi$, starting at $V^\eta$. If $\eta_i = (1 - \gamma) \delta_i$ then $\forall s \in S_j$, $V_i^\eta(s) - V_i^\pi(s) \leq \delta_i$.
@@ -41,7 +42,8 @@ We may again recognize the existence of $Q_i^\eta(s^3, \pi(s^3))$ and place a lo
 Therefore, let $\eta_i = (1 - \gamma) \delta_i$. This guarantees that error \emph{for all} states $s \in S$ is bounded by $\delta_i$.
 \end{proof}
 
-In order to prove convergence of Algorithm~\ref{alg:lvi}, we must first prove Proposition~\ref{prop:lvi_contraction}. It states that the value iteration component over a state partition with slack is a contraction map. The proof itself follows from value iteration~\cite{Bellman57} and from Russel and Norvig~\shortcite{Russell10-AI}. We include it here since there are a few important modifications required, for completeness, and it explains exactly why we must make an assumption about convergence of LVI later in this section.
+In order to prove convergence of Algorithm~\ref{alg:lvi}, we must first prove Proposition~\ref{prop:lvi_contraction}. It states that the value iteration component over a state partition with slack is a contraction map. The proof itself follows from value iteration~\cite{Bellman57} and from the suggested proof by Russel and Norvig~\shortcite{Russell10-AI}. We include it here since there are a few modifications required to handle changing actions and fixed values. Primarily, however, it explains exactly why we must make an assumption about convergence of LVI.
+
 
 \begin{proposition}
     \label{prop:lvi_contraction}
@@ -87,37 +89,15 @@ Now, apply Equation~\ref{eq:lvi_V_bar} and notice that the $V_{1i}^{fixed}(s') =
 This proves that the operator $B_i$ is a contraction map on metric space $M_i$, for all $i \in K$.
 \end{proof}
 
-Following the same logic as Bellman's optimality equation, we may guarantee convergence to within $\epsilon > 0$ of the fixed point (Corollary~\ref{cor:lvi_eta_convergence_check}).
+Following the same logic as Bellman's optimality equation, we may guarantee convergence to within $\epsilon > 0$ of the fixed point (Corollary~\ref{prop:lvi_eta_convergence_check}). We omit this proof, since it follows from previous proofs and, unlike Proposition~\ref{prop:lvi_contraction}, there is nothing which affects further results. The full proof is provided in the supplementary material for completeness.
 
 \begin{proposition}
-    \label{cor:lvi_eta_convergence_check}
+    \label{prop:lvi_eta_convergence_check}
     For all $j \in L$, for $i \in K$, assume $1, \ldots, i - 1$ has converged. Following Equation~\ref{eq:lvi}; Lines 7-10, for any $i \in K$, $B_i$ converges to within $\epsilon > 0$ of a unique fixed point once $\| V_i^{t+1} - V_i^t \|_\infty^{S_j} < \epsilon \frac{1 - \gamma}{\gamma}$ for iteration $t > 0$.
 \end{proposition}
 
-\begin{proof}
-Expanding upon Proposition~\ref{prop:lvi_contraction}, for all $i \in K$, by definition of a contraction map, $B_i$ admits at most one fixed point. By \emph{Banach's fixed point theorem}, since $M_i$ is a complete metric space and $B_i$ is a contraction map on $Y_i$, $B_i$ admits a unique fixed point $V_i^* \in Y_i$. Therefore, the final $V^*$ is a unique fixed point in the space over all value functions over $i \in K$ and $s \in S_j$.
-
-Finally, a corollary of Banach's fixed point theorem is that the speed of convergence to within $\epsilon > 0$ of the fixed point $x^*$ is known (using the generic notation from above for a metric space).
-\begin{align*}
-    d(x^*, x_{t+1}) &\leq \frac{\alpha}{1 - \alpha} d(x_{t+1}, x_t) \\
-    \| V_i^* - V_i^{t+1}\|_\infty^{S_j} &\leq \frac{\gamma}{1 - \gamma} \| V_i^{t+1} - V_i^t \|_\infty^{S_j}
-\end{align*}
-
-Since we want the distance from the fixed point $V_i^*$ to be $\epsilon$, we may rewrite the equation accordingly.
-\begin{align*}
-    \epsilon &\leq \frac{\gamma}{1 - \gamma} \| V_i^{t+1} - V_i^t \|_\infty^{S_j} \\
-    \epsilon \frac{1 - \gamma}{\gamma} &\leq \| V_i^{t+1} - V_i^t \|_\infty^{S_j}
-\end{align*}
-
-The above equation states that we are at least $\epsilon$ (or more) away from the fixed point when the maximum difference (over the states) between iterations satisfies the inequality. Therefore, we flip the inequality to create a convergence criterion, which ensures that we are $\epsilon$ or less from the fixed point.
-
-\begin{equation*}
-    \quad \| V_i^{t+1} - V_i^t \|_\infty^{S_j} < \epsilon \frac{1 - \gamma}{\gamma}
-\end{equation*}
-\end{proof}
-
 %\begin{corollary}
-%    \label{cor:lvi_generalizes}
+%    \label{prop:lvi_generalizes}
 %    Algorithm~\ref{alg:lvi} generalizes VI.
 %\end{corollary}
 
@@ -177,23 +157,24 @@ Next, we may write the infinity norm definition over $S_j$, recognizing that if 
 Therefore, $G$ is a contraction map in the space of both $K$ and $S$, so $G$ admits at most one fixed point. By \emph{Banach's fixed point theorem}, since $M$ is a complete metric space and $G$ is a contraction map on $Y$, $G$ admits a unique fixed point $V^* \in Y$. Therefore, the final $V^*$ is a unique fixed point in the space over all value functions over $i \in K$ and $s \in S$.
 \end{proof}
 
-We have guaranteed convergence of LVI to the optimal policy. Interestingly, conditioning the value function preference on one particular subset of the states, introduces a connection between LVI for LMDPs and game theory. First, we recognize a mapping from the LMDP to a \emph{normal form game} in Definition~\ref{def:lmdp_normal_form}. Then, we show in Proposition~\ref{prop:lvi_nash} that the resulting LMDP's optimal policy computed from LVI is, in fact, a Nash equilibrium of the normal form.
+Interestingly, there is a connection between LMDPs and game theory; specifically, Definition~\ref{def:lmdp_normal_form} describes a mapping from an LMDP to a \emph{normal form game}. Intuitively, each partition can be thought of as a player in a game. The action a partition can take are any sub-policy for the states in the partition. We select any $\ell$ value functions, one from each partition, and use those as the payoffs for a normal form game. We show in Proposition~\ref{prop:lvi_nash} that the resulting LMDP's optimal policy computed from LVI is, in fact, a Nash equilibrium.
+
 
 \begin{definition}
     \label{def:lmdp_normal_form}
-    Let LMDP $\langle S, A, T, \mathbf{R}, \delta, \mathcal{S}, o \rangle$ have value functions $V^\pi$ for corresponding optimal policy $\pi$, the optimal value functions $V^\eta$, computed via LVI (Algorithm~\ref{alg:lvi}).
-
-    Let $\bar{s} = \langle s_1, \ldots, s_\ell \rangle$ be any tuple of states such that $\forall z \in L$, $s_z \in S_z$, and let $\bar{i} = \langle i_1, \ldots, i_\ell \rangle$ be any tuple of indices $i_z \in K$.
+    Let LMDP $\langle S, A, T, \mathbf{R}, \delta, \mathcal{S}, o \rangle$ have value functions $V^\pi$ for corresponding optimal policy $\pi$, the optimal value functions $V^\eta$, computed via LVI (Algorithm~\ref{alg:lvi}). Let $\bar{s} = \langle s_1, \ldots, s_\ell \rangle$ be a state tuple such that $\forall z \in L$, $s_z \in S_z$. Let $\bar{i} = \langle i_1, \ldots, i_\ell \rangle$ be any tuple of indices $i_z \in K$.
 
     The \textbf{LMDP's Normal Form Game} $\langle L, \mathcal{A}, U \rangle$ is:
     \begin{itemize}
-        \item $L = \{1, \ldots, \ell\}$ is a finite set of agents, one for each partition in $X$
+        \item $L = \{1, \ldots, \ell\}$ is a set of agents (partitions)
         \item $\mathcal{A} = \mathcal{A}_1 \times \cdots \times \mathcal{A}_\ell$ is a finite set of joint actions, such that $\forall z \in L$, $x = |S_z|$, $S_z = \{s_{z1}, \ldots, s_{zx}\}$, $\mathcal{A}_z = A_{i_z}(s_{z1}) \times \cdots \times A_{i_z}(s_{zx})$
         \item $U = \langle u_1, \ldots, u_\ell \rangle$ is a set of utility functions, such that $\forall z \in L$, $\forall a \in \mathcal{A}$, $s_z \in \bar{s}$, $u_z(a_z, a_{-z}) = \min \{ V_{i_z}^{\pi, a_z} (s_z), V_{i_z}^\eta (s_z) - \delta_{i_z} \}$.
     \end{itemize}
 \end{definition}
 
-Note that we only consider pure strategy profiles, and thus a player's \emph{strategy set} will be used synonymously with its \emph{action set}. Similarly, since we also consider one-stage games, \emph{strategy profile} will be used synonymously with \emph{action profile}.
+Note that we only consider pure strategy profiles. Thus, a player's \emph{strategy set} will be used synonymously with its \emph{action set}. Similarly, since we consider one stage games, \emph{strategy profile} will be synonymous with \emph{action profile}.
+
+
 \begin{proposition}
     \label{prop:lvi_nash}
     For LMDP $\langle S, A, T, \mathbf{R}, \delta, \mathcal{S}, o \rangle$, let $\pi$ be the optimal policy computed using LVI (Algorithm~\ref{alg:lvi}). Let $f(\pi) = \langle \omega_1, \ldots, \omega_\ell \rangle$ so that $\forall z \in L$, $x = |S_z|$, $S_z = \{ s_{z1}, \ldots, s_{zx} \}$, $\omega_z = \langle \pi(s_{z1}), \ldots, \pi(s_{zx}) \rangle$. Applying the transformation in Definition~\ref{def:lmdp_normal_form}, the strategy (action) profile $f(\pi) = a = (a_z, a_{-z}) \in \mathcal{A}$ is a weak pure strategy Nash equilibrium.
@@ -210,25 +191,26 @@ By Proposition~\ref{prop:lvi_eta}, $V_{i_z}^\pi (s_z) \geq V_{i_z}^\eta (s_z) - 
 \begin{equation*}
     u_z(a_z, a_{-z}) = \min \{ V_{i_z}^\pi (s_z), V_{i_z}^\eta (s_z) - \delta_i \} = V_{i_z}^\eta (s_z) - \delta_i
 \end{equation*}
-Similarly, there are two cases for $V_{i_z}^{\pi'} (s_z)$.
+There are two cases for $V_{i_z}^{\pi'} (s_z)$; regardless, the inequality $u_z(a_z, a_{-z}) \geq u_z(a', a_{-z})$ is true. Therefore, the strategy (action) profile $\pi$ is a Nash equilibrium.
 
-\emph{Case 1:} $V_{i_z}^{\pi'} (s_z) \geq V_{i_z}^\eta (s_z) - \delta_i$. Which implies:
-\begin{equation*}
-    u_z(a', a_{-z}) = \min \{ V_{i_z}^{\pi'} (s_z), V_{i_z}^\eta (s_z) - \delta_i \} = V_{i_z}^\eta (s_z) - \delta_i
-\end{equation*}
-Therefore, $u_z(a_z, a_{-z}) = u_z(a', a_{-z})$.
+%\emph{Case 1:} $V_{i_z}^{\pi'} (s_z) \geq V_{i_z}^\eta (s_z) - \delta_i$. Which implies:
+%\begin{equation*}
+%    u_z(a', a_{-z}) = \min \{ V_{i_z}^{\pi'} (s_z), V_{i_z}^\eta (s_z) - \delta_i \} = V_{i_z}^\eta (s_z) - \delta_i
+%\end{equation*}
+%Therefore, $u_z(a_z, a_{-z}) = u_z(a', a_{-z})$.
+%
+%\emph{Case 2:} $V_{i_z}^{\pi'} (s_z) < V_{i_z}^\eta (s_z) - \delta_i$. Which implies:
+%\begin{equation*}
+%    u_z(a', a_{-z}) = \min \{ V_{i_z}^{\pi'} (s_z), V_{i_z}^\eta (s_z) - \delta_i \} = V_{i_z}^{\pi'} (s_z)
+%\end{equation*}
+%Therefore, $u_z(a_z, a_{-z}) > u_z(a', a_{-z})$.
 
-\emph{Case 2:} $V_{i_z}^{\pi'} (s_z) < V_{i_z}^\eta (s_z) - \delta_i$. Which implies:
-\begin{equation*}
-    u_z(a', a_{-z}) = \min \{ V_{i_z}^{\pi'} (s_z), V_{i_z}^\eta (s_z) - \delta_i \} = V_{i_z}^{\pi'} (s_z)
-\end{equation*}
-Therefore, $u_z(a_z, a_{-z}) > u_z(a', a_{-z})$.
-
-In both cases, the inequality $u_z(a_z, a_{-z}) \geq u_z(a', a_{-z})$ is true. Therefore, the strategy (action) profile $\pi$ is a Nash equilibrium.
+%In both cases, the inequality $u_z(a_z, a_{-z}) \geq u_z(a', a_{-z})$ is true. Therefore, the strategy (action) profile $\pi$ is a Nash equilibrium.
 
 \end{proof}
 
-So far, we have shown some convergence properties of LVI in an LMDP, and a connection to game theory. We will now prove a uniqueness property in relation of linearly weighted scalarization functions; in particular, there exists LMDPs such that for the corresponding MOMDP, no weight exists which would allow VI to return the same policy as LVI.
+So far, we have shown some convergence properties of LVI and a connection to game theory. We will now prove a uniqueness property in relation of linearly weighted scalarization functions; in particular, there exist LMDPs such that for the corresponding MOMDP, no weight exists which would allow VI to return the same policy as LVI. The idea is to construct a MOMDP which has conflicting weight requirements to produce the policy returned by LVI.
+
 
 \begin{figure}% [H]
 \begin{center}
@@ -238,47 +220,23 @@ So far, we have shown some convergence properties of LVI in an LMDP, and a conne
 \end{center}
 \end{figure}
 
+
 \begin{proposition}
     \label{prop:lvi_uniqueness}
-    There exist LMDPs, with a policy following LVI $\pi_{lvi}$, such that for all weights $\mathbf{w}$, the corresponding scalarized MOMDP's policy $\pi_{\mathbf{w}}$ is not equal to $\pi_{lvi}$.
+    There exist LMDPs, with a policy following LVI $\pi$, such that for all weights $\mathbf{w}$, the corresponding scalarized MOMDP's policy $\pi_{\mathbf{w}}$ is not equal to $\pi$.
 \end{proposition}
 
 \begin{proof}
 Consider the MOMDP depicted in Figure~\ref{fig:example_momdp}, with states $S = \{s_1, s_2, s_3, s_4\}$, $A = \{stay, leave\}$, $T(s, stay, s') = 1$ if $s = s'$, $T(s, leave, s') = 1$ if $s \neq s'$, $T(s, a, s') = 0$ otherwise, and rewards $\mathbf{R} = [ R_1, R_2 ]^T$ as shown.
 
-(a) We now prove that for $w_1 < 1/3$ and $w_2 > 2/3$, $\pi_\mathbf{w}(s_1) = leave$ and $\pi_\mathbf{w}(s_2) = stay$. Proof by induction on $t$.
+For states $s_1$ and $s_2$, $w_1 < 1/3$ and $w_2 > 2/3$ produce the policy $\pi_\mathbf{w}(s_1) = leave$ and $\pi_\mathbf{w}(s_2) = stay$. Similarly, weights $w_1 > 1/3$ and $w_2 < 2/3$ produce the policy $\pi_\mathbf{w}(s_1) = stay$ and $\pi_\mathbf{w}(s_2) = leave$. Only weights set to $w_1 = 1/3$ and $w_2 = 2/3$ allows for ambiguity; a carefully selected tie-breaking rule alows for the policy $\pi_\mathbf{w}(s_1) = \pi_\mathbf{w}(s_2) = stay$.
 
-\emph{Base Case:} $t = 1$.
-\begin{align*}
-    Q_\mathbf{w}^1(s_1, stay) &= 2 w_1 + \gamma V_\mathbf{w}^0(s_1) \\
-        &< w_2 + \gamma V_\mathbf{w}^0(s_2) = Q_\mathbf{w}^1(s_1, leave) \\
-    Q_\mathbf{w}^1(s_2, stay) &= w_2 + \gamma V_\mathbf{w}^0(s_2) \\
-        &> 2 w_1 + \gamma V_\mathbf{w}^0(s_1) = Q_\mathbf{w}^1(s_2, leave) \\
-    \Rightarrow \quad \quad &\pi_\mathbf{w}^1(s_1) = leave \quad \quad \pi_\mathbf{w}^1(s_2) = stay \\
-    \Rightarrow \quad \quad &V_\mathbf{w}^1(s_1) = w_2 \quad \quad V_\mathbf{w}^1(s_2) = w_2
-\end{align*}
-Thus, the base case holds true. Note: Both value functions have the same value.
+The exact same logic holds for states $s_3$ and $s_4$ with the weights reversed at $w_1 = 2/3$ and $w_2 = 1/3$ to allow a tie-breaking rule to produce $\pi_\mathbf{w}(s_3) = \pi_\mathbf{w}(s_4) = stay$.
 
-\emph{Induction Step:} Assume true for $t = T$, must show for $t = T + 1$.
-\begin{align*}
-    Q_\mathbf{w}^{T+1}&(s_1, stay) = 2 w_1 + \gamma V_\mathbf{w}^T(s_1) = 2 w_1 \sum_{t=0}^T \gamma^t \\
-        &< w_2 + \gamma V_\mathbf{w}^T(s_2) = w_2 \sum_{t=0}^T \gamma^t = Q_\mathbf{w}^{T+1}(s_1, leave) \\
-    \Rightarrow \quad \quad &\pi_\mathbf{w}^{T+1}(s_1) = leave \quad \quad \pi_\mathbf{w}^{T+1}(s_2) = stay \\
-    \Rightarrow \quad \quad &V_\mathbf{w}^{T+1}(s_1) = w_2 \sum_{t=0}^T \gamma^t \quad \quad V_\mathbf{w}^{T+1}(s_2) = w_2 \sum_{t=0}^T \gamma^t 
-\end{align*}
-By induction, $\forall t \in \mathbb{N}$, $\pi_\mathbf{w}(s_1) = leave$ and $\pi_\mathbf{w}(s_2) = stay$ for weights $w_1 < 1/3$ and $w_2 > 2/3$.
-
-(b) Apply the same logic for $w_1 > 1/3$ and $w_2 < 2/3$ to obtain the reverse policy: $\pi_\mathbf{w}(s_1) = stay$ and $\pi_\mathbf{w}(s_2) = leave$.
-
-(c) Ambiguity exists at $w_1 = 1/3$ and $w_2 = 1/3$, wherein we must employ a tie-breaking rule. Under this scenario, we can construct a policy such that $\pi_\mathbf{w}(s_1) = \pi_\mathbf{w}(s_2) = stay$.
-
-(d) Note that (a) and (b) are reversed for states $s_3$ and $s_4$ by applying the exact same logic again for these states. This means that for $w_1 < 2/3$ and $w_2 < 1/3$ it implies $\pi_\mathbf{w}(s_3) = leave$ and $\pi_\mathbf{w}(s_4) = stay$; for $w_1 > 2/3$ and $w_2 < 1/3$ it implies $\pi_\mathbf{w}(s_3) = stay$ and $\pi_\mathbf{w}(s_4) = leave$. Similar to (c), only with the weights defined as $w_1 = 2/3$ and $w_2 = 1/3$, ambiguity allows for a tie-breaking rule to produce $\pi_\mathbf{w}(s_3) = \pi_\mathbf{w}(s_3) = stay$.
-
-(e) Combine (a)-(d), realizing that for states $S = \{s_1, s_2, s_3, s_4\}$, no weight exists to produce the policy $\pi_\mathbf{w}(s) = stay$ for all $s \in S$.
-
-(f) Must show that LVI in an LMDP using these states, actions, transitions, and rewards can return the policy $\pi_{lvi}(s) = stay$ for all $s \in S$.
-
+Construct the corresponding LMDP with $\mathcal{S} = \{S_1, S_2\}$, $S_1 = \{s_1, s_3\}$, $S_2 = \{s_2, s_4\}$, $o = \langle o_1, o_2 \rangle$, $o_1 = \langle 1, 2 \rangle$, $o_2 = \langle 2, 1 \rangle$, and $\delta = \langle 0, 0, \rangle$. The policy returned by LVI is $\pi(s) = stay$ for all $s \in S$. This policy is unique since it cannot be produced by any selection of weights.
 \end{proof}
 
-Finally, we note that it is easy to show that Algorithm~\ref{alg:lvi} generalizes value iteration (VI) and other forms of LVI~\cite{Gabor98-MultiObjectiveReinforcementLearning}.
+%This example also demonstrates the practical use of LVI, since the final values of each state are much higher for $\pi$ than they are for any $\pi_\mathbf{w}$.
+
+%As a final note, it is easy to show that Algorithm~\ref{alg:lvi} generalizes value iteration (VI) and other forms of LVI~\cite{Gabor98-MultiObjectiveReinforcementLearning}.
 
