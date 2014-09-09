@@ -1,7 +1,12 @@
 \section{Theoretical Analysis}
 \label{sec:theoretical_analysis}
 
-First we show in Proposition~\ref{prop:lvi_eta} proves that $\eta_i$ from Equation~\ref{eq:restricted_actions_set} may be defined as $(1 - \gamma) \delta_i$ to bound the final deviation from the optimal value of a state by $\delta_i$, for $i \in K$. This is designed to be a worst-case guarantee that considers each state selects an action as far from optimal as it can, given the slack allocated to it. The accumulation of error over all states is bounded by $\delta$; in practice, this very strong constraint can be relaxed, if desired.
+This section is broken into three parts. First, we provide a strong lower bound on slack to complete the definition of LVI. Second, we prove convergence given an important assumption, and explain why the assumption must exist. Third, we show two properties of LMDPs: game theory connection and its optimal policy's distinctness with respect to scalarization methods.
+
+
+\subsection{Strong Bound on Slack}
+
+First we show in Proposition~\ref{prop:lvi_eta} proves that $\eta_i$ from Equation~\ref{eq:restricted_actions_set} may be defined as $(1 - \gamma) \delta_i$ to bound the final deviation from the optimal value of a state by $\delta_i$, for $i \in K$. This is designed to be a worst-case guarantee that considers each state selects an action as far from optimal as it can, given the slack allocated to it. The accumulation of error over all states is bounded by $\delta$. In practice, this strong lower bound constraint can be relaxed, if desired.
 
 
 \begin{proposition}
@@ -42,7 +47,10 @@ We may again recognize the existence of $Q_i^\eta(s^3, \pi(s^3))$ and place a lo
 Therefore, let $\eta_i = (1 - \gamma) \delta_i$. This guarantees that error \emph{for all} states $s \in S$ is bounded by $\delta_i$.
 \end{proof}
 
-In order to prove convergence of Algorithm~\ref{alg:lvi}, we must first prove Proposition~\ref{prop:lvi_contraction}. It states that the value iteration component over a state partition with slack is a contraction map. The proof itself follows from value iteration~\cite{Bellman57} and from the suggested proof by Russel and Norvig~\shortcite{Russell10-AI}. We include it here since there are a few modifications required to handle changing actions and fixed values. Primarily, however, it explains exactly why we must make an assumption about convergence of LVI.
+
+\subsection{Convergence Properties}
+
+In order to prove convergence of Algorithm~\ref{alg:lvi}, we must first prove Proposition~\ref{prop:lvi_contraction}. It states that the value iteration component over a state partition with slack is a contraction map. The proof itself follows from value iteration~\cite{Bellman57} and from the suggested proof by Russel and Norvig~\shortcite{Russell10-AI}. We include it here since there are a few modifications required (restricted actions and fixed values), and it explains exactly why we must make an assumption about convergence of LVI.
 
 
 \begin{proposition}
@@ -73,14 +81,14 @@ As part of the $Q(\cdot)$ values, we distribute $T(\cdot)$ to each $R(\cdot)$ an
     &\quad \quad - \gamma \max_{a \in A_i(s)} \sum_{s' \in S} T(s, a, s') \bar{V}_2(s') \Big|
 \end{align*}
 
-First, we can pull out $\gamma$. Recall, also that for any two functions $f$ and $g$, $| \max_x f(x) - \max_x g(x) | \leq \max_x | f(x) - g(x) |$. After applying this property, we note that $T(\cdot)$ lies on an $n$-simplex, which forms a simple convex polytope after scaling the value function difference. Convex polytopes obtain their maximum values at the vertices, allowing us to select the maximal state $s \in S$ instead.
+First, we can pull out $\gamma$. Recall, also that for any two functions $f$ and $g$, $| \max_x f(x) - \max_x g(x) | \leq \max_x | f(x) - g(x) |$. %After applying this property, we note that $T(\cdot)$ lies on an $n$-simplex, which forms a simple convex polytope after scaling the value function difference. Convex polytopes obtain their maximum values at the vertices, allowing us to select the maximal state $s \in S$ instead.
 \begin{align*}
 %    &\| B_i V_1 - B_i V_2 \|_\infty^{S_j} \\
-    &\leq \gamma \max_{s \in S_j} \max_{a \in A_i(s)} \Big| \sum_{s' \in S} T(s, a, s') (\bar{V}_1(s') - \bar{V}_2(s')) \Big| \\
+%    &\leq \gamma \max_{s \in S_j} \max_{a \in A_i(s)} \Big| \sum_{s' \in S} T(s, a, s') (\bar{V}_1(s') - \bar{V}_2(s')) \Big| \\
     &\leq \gamma \max_{s \in S_j} \max_{a \in A_i(s)} \sum_{s' \in S} T(s, a, s') \Big| \bar{V}_1(s') - \bar{V}_2(s') \Big|
 \end{align*}
 
-Now, apply Equation~\ref{eq:lvi_V_bar} and notice that the $V_{1i}^{fixed}(s') = V_{2i}^{fixed}(s')$, $\forall s' \in S \setminus S_j$. These terms cancel, and we are left with the difference of $V_1$ and $V_2$ over $S_j$.
+Now, we can apply Equation~\ref{eq:lvi_V_bar}. Note the {\bf requirement} that $\| V_1^{fixed} - V_2^{fixed} \|_\infty^{S \setminus S_j} \leq \| V_1 - V_2 \|_\infty^{S_j}$. With this assumption, we will be left with the difference of $V_1$ and $V_2$ over $S_j$, and thus a contraction map.
 \begin{align*}
     &\leq \gamma \max_{s \in S_j} \max_{a \in A_i(s)} \sum_{s' \in S_j} T(s, a, s') \Big| V_1(s') - V_2(s') \Big| \\
     &\leq \gamma \max_{s \in S_j} \Big| V_1(s) - V_2(s) \Big| \\
@@ -89,73 +97,54 @@ Now, apply Equation~\ref{eq:lvi_V_bar} and notice that the $V_{1i}^{fixed}(s') =
 This proves that the operator $B_i$ is a contraction map on metric space $M_i$, for all $i \in K$.
 \end{proof}
 
-Following the same logic as Bellman's optimality equation, we may guarantee convergence to within $\epsilon > 0$ of the fixed point (Corollary~\ref{prop:lvi_eta_convergence_check}). We omit this proof, since it follows from previous proofs and, unlike Proposition~\ref{prop:lvi_contraction}, there is nothing which affects further results. The full proof is provided in the supplementary material for completeness.
+
+Following the same logic as Bellman's optimality equation, we may guarantee convergence to within $\epsilon > 0$ of the fixed point (Proposition~\ref{prop:lvi_convergence}). We omit this proof, since it follows exactly like previous proofs and, unlike Proposition~\ref{prop:lvi_contraction}, there are no important components which affect further results. The full proof is provided in the supplementary material for the sake of completeness.
+
 
 \begin{proposition}
-    \label{prop:lvi_eta_convergence_check}
+    \label{prop:lvi_convergence}
     For all $j \in L$, for $i \in K$, assume $1, \ldots, i - 1$ has converged. Following Equation~\ref{eq:lvi}; Lines 7-10, for any $i \in K$, $B_i$ converges to within $\epsilon > 0$ of a unique fixed point once $\| V_i^{t+1} - V_i^t \|_\infty^{S_j} < \epsilon \frac{1 - \gamma}{\gamma}$ for iteration $t > 0$.
 \end{proposition}
 
-%\begin{corollary}
-%    \label{prop:lvi_generalizes}
-%    Algorithm~\ref{alg:lvi} generalizes VI.
-%\end{corollary}
 
-With our propositions for LVI with slack and fixed states in place, we now prove that LVI itself converges in Proposition~\ref{prop:lvi}.
+As we found in Proposition~\ref{prop:lvi_contraction}'s proof, there is an implicit constraint underlying its application. Proposition~\ref{prop:lvi_convergence} leverages \emph{Banach's fixed point theorem}, which itself proves convergence by constructing a sequence of value functions in the metric space, following the contraction operator. This is trivially true for the inner while loop on Lines 8-11, but not necessarily true for the outer while loop.
+
+For convergence proof we use Banach's fixed point theorem to ensure uniqueness. Therefore, we must assume a bound on the difference between $V^{fixed}$ over each iteration (Assumption~\ref{ampt:proper_partitions}). Intuitively, with respect to LVI, the assumption takes whichever partition is the source of the largest error, and assumes that it always the source of the largest error until it converges. We prove that LVI converges to a unique fixed point under this assumption in Proposition~\ref{prop:lvi}.
+
+
+\begin{assumption}[Proper Partitions]
+    \label{ampt:proper_partitions}
+    Let $j \in L$ be the partition which satisfies $\| V_1^{fixed} - V_2^{fixed} \|_\infty^{S \setminus S_j} \leq \| V_1 - V_2 \|_\infty^{S_j}$ from Proposition~\ref{prop:lvi_contraction}. Let $i \in K$ such that $1, \ldots, i - 1$ has converged. Assume that this inequality holds until $j$ has converged to within $\epsilon$, and that it remains fixed at $V_i^{fixed}$.
+    % $\| B_i V_i^{fixed} - V_i^{fixed} \|_\infty^{S \setminus S_j} \leq \| B_i V_i - V_i \|_\infty^{S_j}$
+\end{assumption}
+
 
 \begin{proposition}
     \label{prop:lvi}
-    LVI (Algorithm~\ref{alg:lvi}) converges to a unique fixed point $V^*$ in the space of value functions given that for each $j \in L$, $1, \ldots, i - 1$ has converged over $s \in S_j$, with discount factor $\gamma \in [0, 1)$.
+    LVI (Algorithm~\ref{alg:lvi}) converges to a unique fixed point $V^*$ under Assumption~\ref{ampt:proper_partitions} with $\gamma \in [0, 1)$.
 \end{proposition}
 
 
-% TODO: For each of the partitions j in L, we know that either o_j(1), \ldots, o_j(i - 1) has converged, or that i = 1. Either way, we can write:
-%    \max_{j \in L} \max_{i \in \{o_j(1), \ldots, o_j(i - 1)\}} \max_{s \in S_j} | (G V_1)_i (s) - (G V_2)_i (s) |
-% You are going to need to define the metric space in a fancy way... hmm.
-% Anyway, defining it this way allows you to apply Prop 2 for each i.
-% Finally, since this is true for any collection, it implies a unique fixed point exists, which it converges to. Then, once it has converged, we may re-apply the proposition to guarantee it converges again for another value function.
-
-
-% Also, make a note after the proof that, just like normal value iteration, this version allows for any number of extra iterations for a state, or collection of states. Cite as an example the variant that waits for each component in each partition's ordering to converge.
-
-
 \begin{proof}
-Let $Y = \mathbb{R}^{k \times n}$ be the space of all value functions over $i \in K$ and $s \in S$, i.e., for all $V \in Y$ we have the following.
-\begin{equation*}
-    V = \begin{bmatrix}
-            V_1(s_1) & \cdots & V_1(s_n) \\
-            \vdots & \ddots & \vdots \\
-            V_k(s_1) & \cdots & V_k(s_n)
-        \end{bmatrix}
-\end{equation*}
-Let distance metric $d$ be the \emph{max norm}, i.e., $\|V\|_\infty$ $=$ $\max_{i \in K} \max_{s \in S} | V_i(s) |$. Thus, the metric space $M = \langle Y, d \rangle$ is a \emph{Banach space}.
+Must show that for each partition, all value functions converge following the respective orderings, in sequence, to a unique fixed point. We do this by constructing a metric space of the currently converged values, and the ones that are ``converging'' (i.e., satisfying Assumption~\ref{ampt:proper_partitions}). Then, we apply Proposition~\ref{prop:lvi_contraction} which proves that $G$ is a contraction map on this space. Finally, since this is true for all partitions and their value functions, and Assumption~\ref{ampt:proper_partitions} guarantees converged values remain stable, it converges to the entire metric space over the entire partitions and their values.
 
-Let $G$ be an operator in $M$ following Lines 4-13 in Algorithm~\ref{alg:lvi}, i.e., $V' = GV$ using the algorithm's variables: $V$ and $V'$. Must show that $G$ is a contraction map. Let $V_1, V_2 \in Y$ be any two value function vectors.
-\begin{equation*}
-    \| G V_1 - G V_2 \|_\infty = \max_{i \in K} \max_{s \in S} | (G V_1)_i (s) - (G V_2)_i (s) |
-\end{equation*}
+Let $Y$ be the space of all value functions over partitions $\forall j \in L' \subseteq L$, value functions $K_j' \subseteq K$, and their states $S$ which have converged or satisfy Assumption~\ref{ampt:proper_partitions}. Note that the base case includes only the first $o_j(1) \in K_j'$ from each $j \in L'$. Let distance metric $d$ be the \emph{max norm}, i.e., $\|V\|_\infty$ $=$ $\max_{j \in L'} \max_{i \in K_j'} \max_{s \in S_j} | V_i(s) |$. Thus, the metric space $M = \langle Y, d \rangle$ is a \emph{Banach space}.
 
-Since we have partitioned $S$ into $S_1, \ldots, S_\ell$, we may break the $\max$ apart. Then, apply the fact that for all $i \in K$, Lines 7-10 each modify a different partition's states $s \in S$ of $V_i(s)$.
+Let $G$ be an operator in $M$ following Lines 4-13 in Algorithm~\ref{alg:lvi}, i.e., $V' = GV$ using the algorithm's variables: $V$ and $V'$. Must show that $G$ is a contraction map. Let $V_1, V_2 \in Y$ be any two value function vectors. Rewrite in terms of $B_i$ and then apply Proposition~\ref{prop:lvi_contraction}.
 \begin{align*}
-    \| G V_1 - G V_2 \|_\infty &= \max_{i \in K} \max_{j \in L} \max_{s \in S_j} | (G V_1)_i (s) - (G V_2)_i (s) | \\
-        &= \max_{i \in K} \max_{j \in L} \max_{s \in S_j} | B_i V_{1i} (s) - B_i V_{2i} (s) |
-\end{align*}
-
-This is equivalent to the infinity norm over $S_j$, which enables us to apply Proposition~\ref{prop:lvi_contraction}.
-\begin{align*}
-    \| G V_1 - G V_2 \|_\infty &= \max_{i \in K} \max_{j \in L} \| B_i V_{1i} - B_i V_{2i} \|_\infty^{S_j} \\
-        &\leq \gamma \max_{i \in K} \max_{j \in L} \| V_{1i} - V_{2i} \|_\infty^{S_j}
-\end{align*}
-
-Next, we may write the infinity norm definition over $S_j$, recognizing that if $s \notin S_j$, then $| V_{1i}^{fixed}(s) - V_{2i}^{fixed}(s) | = 0$. Thus, we can simply maximize over all states $S$. After this, we apply the definition of our \emph{max norm} distance metric and obtain our desired result.
-\begin{align*}
-    \| G V_1 - G V_2 \|_\infty &\leq \gamma \max_{i \in K} \max_{j \in L} \max_{s \in S_j} | V_{1i}(s) - V_{2i}(s) | \\
-        &\leq \gamma \max_{i \in K} \max_{s \in S} | V_{1i}(s) - V_{2i}(s) | \\
+    \| G V_1 - G V_2 \|_\infty &= \max_{j \in L'} \max_{i \in K_j'} \max_{s \in S_j} | (G V_1)_i (s) - (G V_2)_i (s) | \\
+        &= \max_{j \in L'} \max_{i \in K_j'} \max_{s \in S_j} | B_i V_{1i} (s) - B_i V_{2i} (s) | \\
+        &\leq \gamma \max_{j \in L'} \max_{i \in K_j'} \max_{s \in S_j} | V_{1i} (s) - V_{2i} (s) | \\
         &\leq \gamma \| V_1 - V_2 \|_\infty
 \end{align*}
 
-Therefore, $G$ is a contraction map in the space of both $K$ and $S$, so $G$ admits at most one fixed point. By \emph{Banach's fixed point theorem}, since $M$ is a complete metric space and $G$ is a contraction map on $Y$, $G$ admits a unique fixed point $V^* \in Y$. Therefore, the final $V^*$ is a unique fixed point in the space over all value functions over $i \in K$ and $s \in S$.
+Therefore, $G$ is a contraction map. By \emph{Banach's fixed point theorem}, since $M$ is a complete metric space and $G$ is a contraction map on $Y$, $G$ admits a unique fixed point $V^* \in Y$.
+
+By Assumption~\ref{ampt:proper_partitions}, for any initial configuration, it converges to a unique fixed point, which produces a new metric space, which converges to a new unique fixed point, etc. This process repeats to completion until we reach the entire space over $\mathbb{R}^{\ell \times k \times n}$, yielding a final unique fixed point $V^*$.
 \end{proof}
+
+
+\subsection{Relation to Other Models}
 
 Interestingly, there is a connection between LMDPs and game theory; specifically, Definition~\ref{def:lmdp_normal_form} describes a mapping from an LMDP to a \emph{normal form game}. Intuitively, each partition can be thought of as a player in a game. The action a partition can take are any sub-policy for the states in the partition. We select any $\ell$ value functions, one from each partition, and use those as the payoffs for a normal form game. We show in Proposition~\ref{prop:lvi_nash} that the resulting LMDP's optimal policy computed from LVI is, in fact, a Nash equilibrium.
 
@@ -215,7 +204,7 @@ So far, we have shown some convergence properties of LVI and a connection to gam
 \begin{figure}% [H]
 \begin{center}
     \includegraphics[width=0.75\linewidth]{momdp.eps}
-    \caption{The example MOMDP as described in Proposition~\ref{prop:lvi_uniqueness}.}
+    \caption{The example MOMDP for Proposition~\ref{prop:lvi_uniqueness}.}
     \label{fig:example_momdp}
 \end{center}
 \end{figure}
