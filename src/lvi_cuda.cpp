@@ -284,8 +284,8 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 							(float)Ri->get_max(),
 							(float)h->get_discount_factor(),
 							(float)epsilon,
-							(unsigned int)std::ceil((double)Pj.size() / 512.0),
-							(unsigned int)512,
+							(unsigned int)std::ceil((double)Pj.size() / 64.0),
+							(unsigned int)64,
 							cudaVi);
 
 #ifdef SHOW_DETAILED_TIMING

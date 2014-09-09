@@ -48,8 +48,8 @@
 int main(int argc, char *argv[])
 {
 	bool losmVersion = true;
-	bool viWeightCheck = true;
-	bool cudaVersion = true;
+	bool viWeightCheck = false;
+	bool cudaVersion = false;
 	bool printGrid = false;
 
 	if (losmVersion) {

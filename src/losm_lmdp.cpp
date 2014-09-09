@@ -375,6 +375,8 @@ void LOSMMDP::create_actions(LOSM *losm)
 		A->add(new IndexedAction());
 	}
 
+	std::cout << "Num Actions: " << A->get_num_actions() << std::endl; std::cout.flush();
+
 	std::cout << "Done Actions!" << std::endl; std::cout.flush();
 }
 
