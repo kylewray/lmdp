@@ -1,4 +1,4 @@
 #!/bin/bash
 
-optirun python visualizer.py ../resources/boston_commons_ ../policies/boston_commons.policy
+optirun python visualizer.py ../resources/boston_ ../policies/boston.policy
 

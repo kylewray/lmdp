@@ -83,9 +83,9 @@ class LMDPVisualizer:
         self.mouseDrag = {'enabled': False, 'x': 0, 'y': 0}
         self.mousePosition = {'x': 0, 'y': 0}
 
-        self.policyLineWidth = 5 # 10
-        self.policyOffset = 10 # 2.5
-        self.policyTrigonWidth = 6.0 # 1.0
+        self.policyLineWidth = 4 # 10
+        self.policyOffset = 5 # 2.5
+        self.policyTrigonWidth = 3.0 # 1.0
         self.highlight = highlight
 
         self.tiredness = 0
@@ -95,8 +95,8 @@ class LMDPVisualizer:
         self.showStateNodes = False
         self.selectedNodes = set()
 
-        self.showPolicyValues = True
-        #self.showPolicyValues = False
+        #self.showPolicyValues = True
+        self.showPolicyValues = False
 
         #self.fastRender = True
         self.fastRender = False
