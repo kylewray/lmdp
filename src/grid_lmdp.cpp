@@ -78,7 +78,7 @@ void GridLMDP::set_default_conditional_preference()
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
-	std::vector<const State *> p;
+	std::vector<State *> p;
 	for (auto s : *S) {
 		p.push_back(resolve(s));
 	}
@@ -99,8 +99,8 @@ void GridLMDP::set_split_conditional_preference()
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
-	std::vector<const State *> p1;
-	std::vector<const State *> p2;
+	std::vector<State *> p1;
+	std::vector<State *> p2;
 
 	for (int c = 0; c < 2; c++) {
 		for (int y = 0; y < size; y++) {
@@ -134,7 +134,7 @@ void GridLMDP::set_split_conditional_preference()
 }
 
 
-void GridLMDP::print(const PolicyMap *policy)
+void GridLMDP::print(PolicyMap *policy)
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
@@ -170,7 +170,7 @@ void GridLMDP::print(const PolicyMap *policy)
                 } else if (std::find(blocked.begin(), blocked.end(), stateHashValue) != blocked.end()) {
                     std::cout << "x";
                 } else {
-                    const Action *action = policy->get(S->get(stateHashValue));
+                    Action *action = policy->get(S->get(stateHashValue));
 
                     if (action->hash_value() == actionNorth) {
                         std::cout << "^";
@@ -285,7 +285,7 @@ void GridLMDP::create_state_transitions()
                 // Only do all the work below if this is not one of the two absorbing state corners (top and bottom right).
                 if ((x == size - 1 && y == 0) || (x == size - 1 && y == size - 1)) {
                 	for (auto action : *A) {
-                		const Action *a = resolve(action);
+                		Action *a = resolve(action);
 
 						T->set(
 							S->get(current),
@@ -572,14 +572,14 @@ void GridLMDP::create_rewards()
 
 	// Top right penalty.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			primary->set(s, a,
 					S->get(0 + 0 + (size - 1)),
@@ -619,17 +619,17 @@ void GridLMDP::create_rewards()
 
 	// Small penalty for travel.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			for (auto statePrime : *S) {
-				const State *sp = resolve(statePrime);
+				State *sp = resolve(statePrime);
 
 				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
 					continue;
@@ -643,14 +643,14 @@ void GridLMDP::create_rewards()
 	// Bottom right reward.
 	for (int c = 0; c < 2; c++) {
 		for (auto state : *S) {
-			const State *s = resolve(state);
+			State *s = resolve(state);
 
 			if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 				continue;
 			}
 
 			for (auto action : *A) {
-				const Action *a = resolve(action);
+				Action *a = resolve(action);
 
 				secondary->set(s, a,
 						S->get(c * size * size + (size - 1) * size + (size - 1)),
@@ -662,7 +662,7 @@ void GridLMDP::create_rewards()
 	// Zero for absorbing states.
 	for (int c = 0; c < 2; c++) {
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			secondary->set(S->get(c * size * size + (size - 1) * size + (size - 1)),
 							a,
@@ -681,17 +681,17 @@ void GridLMDP::create_rewards()
 
 	// Small penalty for travel.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			for (auto statePrime : *S) {
-				const State *sp = resolve(statePrime);
+				State *sp = resolve(statePrime);
 
 				if (std::find(blocked.begin(), blocked.end(), sp->hash_value()) != blocked.end()) {
 					continue;
@@ -704,14 +704,14 @@ void GridLMDP::create_rewards()
 
 	// Bottom left reward.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 
 		if (std::find(blocked.begin(), blocked.end(), s->hash_value()) != blocked.end()) {
 			continue;
 		}
 
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			tertiary->set(s, a,
 					S->get(0 + (size - 1) * size + 0),
@@ -725,7 +725,7 @@ void GridLMDP::create_rewards()
 	// Zero for absorbing states.
 	for (int c = 0; c < 2; c++) {
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			tertiary->set(S->get(c * size * size + (size - 1) * size + (size - 1)),
 							a,
@@ -744,7 +744,7 @@ void GridLMDP::create_misc()
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
 	// The initial state is the top left cell.
-	initialState = new Initial(S->get(0));
+//	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
 	horizon = new Horizon(0.9);

@@ -45,11 +45,13 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <chrono>
+
 int main(int argc, char *argv[])
 {
 	bool losmVersion = true;
-	bool viWeightCheck = false;
-	bool cudaVersion = false;
+	bool viWeightCheck = true;
+	bool cudaVersion = true;
 	bool printGrid = false;
 
 	if (losmVersion) {
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 
-		losmMDP->set_slack(0.0f, 0.0f);
+		losmMDP->set_slack(10.0f, 0.0f);
 
 //		losmMDP->set_uniform_conditional_preference();
 		losmMDP->set_tiredness_conditional_preference();
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
 		// Solve the LOSM MDP using LVI.
 		PolicyMap *policy = nullptr;
 
+		//* Execute either the CUDA version or the CPU version of LVI.
 		if (cudaVersion) {
 			LVICuda solver(0.0001);
 			policy = solver.solve(losmMDP);
@@ -85,17 +88,30 @@ int main(int argc, char *argv[])
 			policy = solver.solve(losmMDP);
 			losmMDP->save_policy(policy, argv[8], solver.get_V());
 		}
+		//*/
+
+		/* Execute the CPU weighted version of VI just to get timings.
+		losmMDP->set_rewards_weights({0.5, 0.5});
+		auto start = std::chrono::high_resolution_clock::now();
+		MDPValueIteration viSolver(0.0001);
+		PolicyMap *viPolicy = viSolver.solve(losmMDP);
+		auto end = std::chrono::high_resolution_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		std::cout << "Total Elapsed Time (CPU Weighted Version of VI): " << elapsed.count() << std::endl; std::cout.flush();
+		delete viPolicy;
+		//*/
+
 
 		// Before we start this VI loop, get the initial state.
-		const LOSMState *initialState = losmMDP->get_initial_state(argv[4], argv[5]);
+		LOSMState *initialState = losmMDP->get_initial_state(argv[4], argv[5]);
 
-		std::vector<std::unordered_map<const State *, double> > V;
+		std::vector<std::unordered_map<State *, double> > V;
 
 		if (viWeightCheck) {
-			compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
-							dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
+			compute_V_pi(dynamic_cast<StatesMap *>(losmMDP->get_states()),
+							dynamic_cast<ActionsMap *>(losmMDP->get_actions()),
 							losmMDP->get_state_transitions(),
-							dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
+							dynamic_cast<FactoredRewards *>(losmMDP->get_rewards()),
 							losmMDP->get_horizon(),
 							0.0001,
 							policy,
@@ -119,21 +135,26 @@ int main(int argc, char *argv[])
 			for (double weight = 0.0; weight <= 1.0; weight += 0.1) {
 				V.clear();
 
-				losmMDP->set_rewards_weights({weight, 1.0 - weight});
+				double oneMinusWeight = 1.0 - weight;
+				if (oneMinusWeight < 1e-15) {
+					oneMinusWeight = 0.0;
+				}
+
+				losmMDP->set_rewards_weights({weight, oneMinusWeight});
 
 				MDPValueIteration viSolver(0.0001);
 				PolicyMap *viPolicy = viSolver.solve(losmMDP);
 
-				compute_V_pi(dynamic_cast<const StatesMap *>(losmMDP->get_states()),
-							dynamic_cast<const ActionsMap *>(losmMDP->get_actions()),
+				compute_V_pi(dynamic_cast<StatesMap *>(losmMDP->get_states()),
+							dynamic_cast<ActionsMap *>(losmMDP->get_actions()),
 							losmMDP->get_state_transitions(),
-							dynamic_cast<const FactoredRewards *>(losmMDP->get_rewards()),
+							dynamic_cast<FactoredRewards *>(losmMDP->get_rewards()),
 							losmMDP->get_horizon(),
 							0.0001,
 							viPolicy,
 							V);
 
-				std::cout << "Weight: [" << weight << ", " << (1.0 - weight) << "]: ";
+				std::cout << "Weight: [" << weight << ", " << oneMinusWeight << "]: ";
 				std::cout << V.at(0).at(initialState) << ", ";
 				std::cout << V.at(1).at(initialState) << std::endl;
 
@@ -169,15 +190,15 @@ int main(int argc, char *argv[])
 		}
 
 		// Before we start this VI loop, get the initial state.
-		const State *initialState = dynamic_cast<const StatesMap *>(gridLMDP->get_states())->get(0);
+		State *initialState = dynamic_cast<StatesMap *>(gridLMDP->get_states())->get(0);
 
-		std::vector<std::unordered_map<const State *, double> > V;
+		std::vector<std::unordered_map<State *, double> > V;
 
 		if (viWeightCheck) {
-			compute_V_pi(dynamic_cast<const StatesMap *>(gridLMDP->get_states()),
-							dynamic_cast<const ActionsMap *>(gridLMDP->get_actions()),
+			compute_V_pi(dynamic_cast<StatesMap *>(gridLMDP->get_states()),
+							dynamic_cast<ActionsMap *>(gridLMDP->get_actions()),
 							gridLMDP->get_state_transitions(),
-							dynamic_cast<const FactoredRewards *>(gridLMDP->get_rewards()),
+							dynamic_cast<FactoredRewards *>(gridLMDP->get_rewards()),
 							gridLMDP->get_horizon(),
 							0.0001,
 							policy,
@@ -206,10 +227,10 @@ int main(int argc, char *argv[])
 				MDPValueIteration viSolver(0.0001);
 				PolicyMap *viPolicy = viSolver.solve(gridLMDP);
 
-				compute_V_pi(dynamic_cast<const StatesMap *>(gridLMDP->get_states()),
-							dynamic_cast<const ActionsMap *>(gridLMDP->get_actions()),
+				compute_V_pi(dynamic_cast<StatesMap *>(gridLMDP->get_states()),
+							dynamic_cast<ActionsMap *>(gridLMDP->get_actions()),
 							gridLMDP->get_state_transitions(),
-							dynamic_cast<const FactoredRewards *>(gridLMDP->get_rewards()),
+							dynamic_cast<FactoredRewards *>(gridLMDP->get_rewards()),
 							gridLMDP->get_horizon(),
 							0.0001,
 							viPolicy,

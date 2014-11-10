@@ -49,7 +49,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-#include <chrono> // New High-Resolution Time for C++11!
+#include <chrono>
 
 LVI::LVI()
 {
@@ -66,7 +66,7 @@ LVI::LVI(double tolerance, bool enableLooping)
 LVI::~LVI()
 { }
 
-PolicyMap *LVI::solve(const LMDP *lmdp)
+PolicyMap *LVI::solve(LMDP *lmdp)
 {
 	// Handle the trivial case.
 	if (lmdp == nullptr) {
@@ -74,29 +74,29 @@ PolicyMap *LVI::solve(const LMDP *lmdp)
 	}
 
 	// Attempt to convert the states object into FiniteStates.
-	const StatesMap *S = dynamic_cast<const StatesMap *>(lmdp->get_states());
+	StatesMap *S = dynamic_cast<StatesMap *>(lmdp->get_states());
 	if (S == nullptr) {
 		throw StateException();
 	}
 
 	// Attempt to convert the actions object into FiniteActions.
-	const ActionsMap *A = dynamic_cast<const ActionsMap *>(lmdp->get_actions());
+	ActionsMap *A = dynamic_cast<ActionsMap *>(lmdp->get_actions());
 	if (A == nullptr) {
 		throw ActionException();
 	}
 
 	// Note: All forms of StateTransitions objects are valid here, since they all require get.
-	const StateTransitions *T = lmdp->get_state_transitions();
+	StateTransitions *T = lmdp->get_state_transitions();
 
 	// Attempt to convert the rewards object into FactoredRewards. Also, ensure that the
 	// type of each element is SASRewards.
-	const FactoredRewards *R = dynamic_cast<const FactoredRewards *>(lmdp->get_rewards());
+	FactoredRewards *R = dynamic_cast<FactoredRewards *>(lmdp->get_rewards());
 	if (R == nullptr) {
 		throw RewardException();
 	}
 	/*
 	for (int i = 0; i < R->get_num_rewards(); i++) {
-		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(oj[i]));
+		SASRewards *Ri = dynamic_cast<SASRewards *>(R->get(oj[i]));
 		if (Ri == nullptr) {
 			throw RewardException();
 		}
@@ -114,26 +114,26 @@ PolicyMap *LVI::solve(const LMDP *lmdp)
 	}
 
 	// Obtain the horizon and return the correct value iteration.
-	const Initial *s0 = lmdp->get_initial_state();
-	const Horizon *h = lmdp->get_horizon();
+//	Initial *s0 = lmdp->get_initial_state();
+	Horizon *h = lmdp->get_horizon();
 	if (h->is_finite()) {
 		throw CoreException();
 	}
 
-	return solve_infinite_horizon(S, A, T, R, s0, h,
+	return solve_infinite_horizon(S, A, T, R, h,
 			lmdp->get_slack(), lmdp->get_partitions(), lmdp->get_orderings());
 }
 
-const std::vector<std::unordered_map<const State *, double> > &LVI::get_V() const
+std::vector<std::unordered_map<State *, double> > &LVI::get_V()
 {
 	return V;
 }
 
-PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-		const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
-		const std::vector<float> &delta,
-		const std::vector<std::vector<const State *> > &P,
-		const std::vector<std::vector<unsigned int> > &o)
+PolicyMap *LVI::solve_infinite_horizon(StatesMap *S, ActionsMap *A,
+		StateTransitions *T, FactoredRewards *R, Horizon *h,
+		std::vector<float> &delta,
+		std::vector<std::vector<State *> > &P,
+		std::vector<std::vector<unsigned int> > &o)
 {
 	// Create the policy based on the horizon.
 	PolicyMap *policy = new PolicyMap(h);
@@ -143,12 +143,12 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	V.resize(R->get_num_rewards());
 
 	// We will want to remember the previous fixed values of states, too.
-	std::vector<std::unordered_map<const State *, double> > VFixed;
+	std::vector<std::unordered_map<State *, double> > VFixed;
 	VFixed.resize(R->get_num_rewards());
 
 	// Default all values.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 		for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 			V[i][s] = 0.0;
 			VFixed[i][s] = 0.0;
@@ -204,7 +204,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	while (!converged) {
 		// Update VFixed to the previous value of V.
 		for (auto state : *S) {
-			const State *s = resolve(state);
+			State *s = resolve(state);
 			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 				VFixed[i][s] = V[i][s];
 			}
@@ -219,7 +219,7 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 				difference[j][i] = 0.0;
 			}
 
-			compute_partition(S, A, T, R, s0, h, delta, P[j], o[j], VFixed, V, policy, difference[j]);
+			compute_partition(S, A, T, R, h, delta, P[j], o[j], VFixed, V, policy, difference[j]);
 		}
 
 		// Check for convergence.
@@ -300,28 +300,28 @@ PolicyMap *LVI::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
 	return policy;
 }
 
-void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-		const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
-		const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-		const std::vector<std::unordered_map<const State *, double> > &VFixed,
-		std::vector<std::unordered_map<const State *, double> > &V,
+void LVI::compute_partition(StatesMap *S, ActionsMap *A, StateTransitions *T,
+		FactoredRewards *R, Horizon *h, std::vector<float> &delta,
+		std::vector<State *> &Pj, std::vector<unsigned int> &oj,
+		std::vector<std::unordered_map<State *, double> > &VFixed,
+		std::vector<std::unordered_map<State *, double> > &V,
 		PolicyMap *policy, std::vector<double> &maxDifference)
 {
 	// The value of the states, one for each reward.
-	std::vector<std::unordered_map<const State *, double> > VPrime;
+	std::vector<std::unordered_map<State *, double> > VPrime;
 	VPrime.resize(R->get_num_rewards());
 
 	// Compute the convergence criterion which follows from the proof of convergence.
 	double convergenceCriterion = epsilon * std::max(0.1, (1.0 - h->get_discount_factor()) / h->get_discount_factor());
 
 	// Remember the set of actions available to each of the value functions. This will be computed at the end of each step.
-	std::vector<std::unordered_map<const State *, std::vector<const Action *> > > AStar;
+	std::vector<std::unordered_map<State *, std::vector<Action *> > > AStar;
 	AStar.resize(R->get_num_rewards());
 
 	// Setup the initial set of actions for i = 1.
 	for (auto s : Pj) {
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 			AStar[oj[0]][s].push_back(a);
 		}
 	}
@@ -330,11 +330,11 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 //std::cout << "Starting VI for Reward " << oj[i] << std::endl; std::cout.flush();
 
-		const SASRewards *Ri = dynamic_cast<const SASRewards *>(R->get(oj[i]));
+		SASRewards *Ri = dynamic_cast<SASRewards *>(R->get(oj[i]));
 
 		// Setup V[i] with initial values of 0.0.
 		for (auto state : *S) {
-			const State *s = resolve(state);
+			State *s = resolve(state);
 
 			// NOTE: You can remove the if statement and just use VStar.at(oj[i]).at(s)!!! It is faster, since it
 			// does not matter which V[.] you initialize it to be.
@@ -357,14 +357,14 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 
 			// Copy the value of all states for this i. The constant type casting forces it to use the copy
 			// assignment instead of the move one.
-			std::unordered_map<const State *, double> Vi;
+			std::unordered_map<State *, double> Vi;
 			for (auto s : Pj) {
 				Vi[s] = VPrime.at(oj[i]).at(s);
 			}
 
 			// For all the states, compute V_i(s).
 			for (auto s : Pj) {
-				const Action *a = nullptr;
+				Action *a = nullptr;
 
 				// Update V according to the previously converged subset of actions.
 				compute_V(S, AStar.at(oj[i]).at(s), T, Ri, h, s, VPrime.at(oj[i]), Vi, a);
@@ -470,19 +470,19 @@ void LVI::compute_partition(const StatesMap *S, const ActionsMap *A, const State
 //	std::cout << "Completed partition." << std::endl; std::cout.flush();
 }
 
-void LVI::compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-		const State *s, const std::unordered_map<const State *, double> &Vi,
-		std::vector<const Action *> &AiPlus1)
+void LVI::compute_A_argmax(StatesMap *S, std::vector<Action *> &Ai,
+		StateTransitions *T, SASRewards *Ri, Horizon *h,
+		State *s, std::unordered_map<State *, double> &Vi,
+		std::vector<Action *> &AiPlus1)
 {
 	compute_A_delta(S, Ai, T, Ri, h, s, Vi, 0.0, AiPlus1);
 }
 
-void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-		const State *s, const std::unordered_map<const State *, double> &Vi,
+void LVI::compute_A_delta(StatesMap *S, std::vector<Action *> &Ai,
+		StateTransitions *T, SASRewards *Ri, Horizon *h,
+		State *s, std::unordered_map<State *, double> &Vi,
 		float deltai,
-		std::vector<const Action *> &AiPlus1)
+		std::vector<Action *> &AiPlus1)
 {
 	double maxQisa = -std::numeric_limits<double>::max();
 	std::vector<double> Qis;
@@ -514,10 +514,10 @@ void LVI::compute_A_delta(const StatesMap *S, const std::vector<const Action *> 
 	}
 }
 
-void LVI::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
-		const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-		const State *s, const std::unordered_map<const State *, double> &Vi,
-		std::unordered_map<const State *, double> &ViNext, const Action *&a)
+void LVI::compute_V(StatesMap *S, std::vector<Action *> &Ai,
+		StateTransitions *T, SASRewards *Ri, Horizon *h,
+		State *s, std::unordered_map<State *, double> &Vi,
+		std::unordered_map<State *, double> &ViNext, Action *&a)
 {
 	// Compute the maximal Q_i(s, a) given the reduced set of actions.
 	ViNext[s] = -std::numeric_limits<double>::max();
@@ -525,7 +525,7 @@ void LVI::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
 
 	// For all the actions, compute max Q_i(s, a) over the current set of actions.
 	for (int i = 0; i < (int)Ai.size(); i++) {
-		const Action *action = Ai[i];
+		Action *action = Ai[i];
 
 		double Qisa = compute_Q(S, T, Ri, h, s, action, Vi);
 		if (Qisa > ViNext[s]) {
@@ -535,20 +535,20 @@ void LVI::compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
 	}
 }
 
-double LVI::compute_Q(const StatesMap *S, const StateTransitions *T, const SASRewards *Ri,
-		const Horizon *h, const State *s, const Action *a,
-		const std::unordered_map<const State *, double> &Vi)
+double LVI::compute_Q(StatesMap *S, StateTransitions *T, SASRewards *Ri,
+		Horizon *h, State *s, Action *a,
+		std::unordered_map<State *, double> &Vi)
 {
 	// Compute the Q_i(s, a) estimate.
 	double Qisa = 0.0;
 
 	// Get the list of successor states.
-	std::vector<const State *> successors;
+	std::vector<State *> successors;
 	T->successors(S, s, a, successors);
 
 	// For each of the successors, compute the bellman update equation.
-	for (const State *sPrime : successors) {
-		std::unordered_map<const State *, double>::const_iterator VisIterator = Vi.find(sPrime);
+	for (State *sPrime : successors) {
+		std::unordered_map<State *, double>::const_iterator VisIterator = Vi.find(sPrime);
 		if (VisIterator == Vi.end()) {
 			throw PolicyException();
 		}

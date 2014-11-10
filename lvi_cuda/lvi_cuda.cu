@@ -35,7 +35,7 @@
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
 
-__global__ void lvi_bellman_update(unsigned int n, unsigned int z, unsigned int m,
+__global__ void lvi_bellman_update_v1(unsigned int n, unsigned int z, unsigned int m,
 		const bool *A, const unsigned int *Pj, const float *T, const float *Ri, unsigned int *pi,
 		float gamma, const float *Vi,
 		float *ViPrime)
@@ -49,7 +49,51 @@ __global__ void lvi_bellman_update(unsigned int n, unsigned int z, unsigned int 
 	// The 1-d index version of the 3-d arrays in the innermost loop.
 	int k;
 
-	// Compute the index of the state. Return if it is beyond the state.
+	// Compute the index of the state. Return if it is beyond the partition size.
+	s = blockIdx.x * blockDim.x + threadIdx.x;
+	if (s >= z) {
+		return;
+	}
+
+	// Nvidia GPUs follow IEEE floating point standards, so this should be safe.
+	ViPrime[Pj[s]] = -FLT_MAX;
+
+	// Compute max_{a in A} Q(s, a).
+	for (int a = 0; a < m; a++) {
+		// Skip this action if it is locked.
+		if (!A[s * m + a]) {
+			continue;
+		}
+
+		// Compute Q(s, a) for this action.
+		Qsa = 0.0f;
+		for (int sp = 0; sp < n; sp++) {
+			k = Pj[s] * m * n + a * n + sp;
+			Qsa += T[k] * (Ri[k] + gamma * Vi[sp]);
+		}
+
+		if (a == 0 || Qsa > ViPrime[Pj[s]]) {
+			ViPrime[Pj[s]] = Qsa;
+			pi[s] = a;
+		}
+	}
+}
+
+__global__ void lvi_bellman_update_v2(unsigned int n, unsigned int z, unsigned int m,
+		const bool *A, const unsigned int *Pj, const float *T, const float *Ri, unsigned int *pi,
+		float gamma, const float *Vi,
+		float *ViPrime)
+{
+	// The current state as a function of the blocks and threads.
+	int s;
+
+	// The intermediate Q(s, a) value.
+	float Qsa;
+
+	// The 1-d index version of the 3-d arrays in the innermost loop.
+	int k;
+
+	// Compute the index of the state. Return if it is beyond the partition size.
 	s = blockIdx.x * blockDim.x + threadIdx.x;
 	if (s >= z) {
 		return;
@@ -220,7 +264,7 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 	}
 
 	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = max(10, (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma))));
+	int iterations = max(16, (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma))));
 
 	// Allocate the device-side memory.
 	if (cudaMalloc(&d_A, z * m * sizeof(bool)) != cudaSuccess) {
@@ -273,9 +317,9 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 //		printf("Blocks: %d\nThreads: %d\nGamma: %f\nn: %d\nm: %d\n", numBlocks, numThreads, gamma, n, m);
 
 		if (i % 2 == 0) {
-			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_Vi, d_ViPrime);
+			lvi_bellman_update_v2<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_Vi, d_ViPrime);
 		} else {
-			lvi_bellman_update<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_ViPrime, d_Vi);
+			lvi_bellman_update_v2<<< numBlocks, numThreads >>>(n, z, m, d_A, d_Pj, d_T, d_Ri, d_pi, gamma, d_ViPrime, d_Vi);
 		}
 	}
 

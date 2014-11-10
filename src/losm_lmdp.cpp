@@ -82,9 +82,9 @@ void LOSMMDP::set_uniform_conditional_preference()
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
-	std::vector<const State *> p;
+	std::vector<State *> p;
 	for (auto state : *S) {
-		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = dynamic_cast<LOSMState *>(resolve(state));
 		p.push_back(s);
 	}
 
@@ -103,11 +103,11 @@ void LOSMMDP::set_tiredness_conditional_preference()
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
-	std::vector<const State *> p1;
-	std::vector<const State *> p2;
+	std::vector<State *> p1;
+	std::vector<State *> p2;
 
 	for (auto state : *S) {
-		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = dynamic_cast<LOSMState *>(resolve(state));
 
 		if (s->get_tiredness() == 0) {
 			p1.push_back(s);
@@ -133,8 +133,8 @@ void LOSMMDP::set_tiredness_conditional_preference()
 	ordering.push_back(r2);
 }
 
-bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename,
-		const std::vector<std::unordered_map<const State *, double> > &V) const
+bool LOSMMDP::save_policy(PolicyMap *policy, std::string filename,
+		const std::vector<std::unordered_map<State *, double> > &V)
 {
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
@@ -144,11 +144,11 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename,
 	}
 
 	for (auto state : *S) {
-		const State *s = resolve(state);
-		const LOSMState *ls = dynamic_cast<const LOSMState *>(s);
+		State *s = resolve(state);
+		LOSMState *ls = dynamic_cast<LOSMState *>(s);
 
-		const Action *a = policy->get(s);
-		const IndexedAction *ia = dynamic_cast<const IndexedAction *>(a);
+		Action *a = policy->get(s);
+		IndexedAction *ia = dynamic_cast<IndexedAction *>(a);
 
 		file << ls->get_current_step()->get_uid() << ",";
 		file << ls->get_current()->get_uid() << ",";
@@ -170,7 +170,7 @@ bool LOSMMDP::save_policy(const PolicyMap *policy, std::string filename,
 	return false;
 }
 
-const LOSMState *LOSMMDP::get_initial_state(std::string initial1, std::string initial2) const
+LOSMState *LOSMMDP::get_initial_state(std::string initial1, std::string initial2)
 {
 	unsigned long initialNodeUID1 = 0;
 	unsigned long initialNodeUID2 = 0;
@@ -182,10 +182,10 @@ const LOSMState *LOSMMDP::get_initial_state(std::string initial1, std::string in
 		throw CoreException();
 	}
 
-	const StatesMap *S = dynamic_cast<const StatesMap *>(states);
+	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
 	for (auto state : *S) {
-		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = dynamic_cast<LOSMState *>(resolve(state));
 
 		if ((s->get_current()->get_uid() == initialNodeUID1 && s->get_previous()->get_uid() == initialNodeUID2) ||
 				(s->get_current()->get_uid() == initialNodeUID2 && s->get_previous()->get_uid() == initialNodeUID1)) {
@@ -323,11 +323,11 @@ void LOSMMDP::create_states(LOSM *losm)
 
 	/* Check!
 	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = static_cast<LOSMState *>(resolve(state));
 
 		int count = 0;
 		for (auto nextState : *((StatesMap *)states)) {
-			const LOSMState *sp = static_cast<const LOSMState *>(resolve(nextState));
+			LOSMState *sp = static_cast<LOSMState *>(resolve(nextState));
 
 //			if (s == sp) {
 //				continue;
@@ -389,19 +389,19 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 	ActionsMap *A = dynamic_cast<ActionsMap *>(actions);
 
 	for (auto state : *S) {
-		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = dynamic_cast<LOSMState *>(resolve(state));
 
 		// Must store the mapping from a next state (prev, cur, auto) to action taken.
 		std::unordered_map<const LOSMNode *,
 			std::unordered_map<const LOSMNode *,
 				std::unordered_map<bool,
-					std::unordered_map<unsigned int, const Action *> > > > map;
+					std::unordered_map<unsigned int, Action *> > > > map;
 		int index = 0;
 
 		// Only set transitions if this is not a goal state. Goal states will always loop to themselves (handled at the end).
 		if (!s->is_goal()) {
 			for (auto nextState : *S) {
-				const LOSMState *sp = dynamic_cast<const LOSMState *>(resolve(nextState));
+				LOSMState *sp = dynamic_cast<LOSMState *>(resolve(nextState));
 
 				// If the current intersection node for current state matches the previous node for the next state,
 				// then this possibly a non-zero transition probability. It now depends on the tiredness level.
@@ -410,7 +410,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 				}
 
 				// This is a valid node. First check if a mapping already exists for taking an action at this next state.
-				const Action *a = nullptr;
+				Action *a = nullptr;
 				try {
 					a = map.at(sp->get_previous()).at(sp->get_current()).at(sp->get_autonomy()).at(sp->get_uniqueness_index());
 				} catch (const std::out_of_range &err) {
@@ -434,7 +434,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 				if (p >= 0.0) {
 					stateTransitions->set(s, a, sp, p);
 
-					const IndexedAction *ia = dynamic_cast<const IndexedAction *>(a);
+					IndexedAction *ia = dynamic_cast<IndexedAction *>(a);
 					successors[s][ia->get_index()] = sp;
 				}
 			}
@@ -445,7 +445,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 		// The reward for any self-transition will be defined to be the largest negative number
 		// possible. This must be done for both enabled and disabled autonomy.
 		for (int i = index; i < (int)IndexedAction::get_num_actions(); i++) {
-			const Action *a = A->get(i);
+			Action *a = A->get(i);
 			stateTransitions->set(s, a, s, 1.0);
 			successors[s][i] = s;
 		}
@@ -454,19 +454,19 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 	/*
 	// CHECK!!!!!
 	for (auto state : *((StatesMap *)states)) {
-		const LOSMState *s = static_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = static_cast<LOSMState *>(resolve(state));
 
 		for (auto action : *((ActionsMap *)actions)) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			double sum = 0.0;
 
 //			std::cout << s->get_previous()->get_uid() << " " << s->get_current()->get_uid() << " ---- Sum is ";
 
-			std::vector<const LOSMState *> asdf;
+			std::vector<LOSMState *> asdf;
 
 			for (auto nextState : *((StatesMap *)states)) {
-				const LOSMState *sp = static_cast<const LOSMState *>(resolve(nextState));
+				LOSMState *sp = static_cast<LOSMState *>(resolve(nextState));
 
 				sum += stateTransitions->get(s, a, sp);
 
@@ -483,7 +483,7 @@ void LOSMMDP::create_state_transitions(LOSM *losm)
 			if (sum > 1.00 || sum < 0.999999) {
 				std::cout << "Sum is: " << sum <<  " ... Bad State " << s->get_previous()->get_uid() << "_" << s->get_current()->get_uid() << " Action " << a->to_string();
 				std::cout << " Next States: "; std::cout.flush();
-				for (const LOSMState *sp : asdf) {
+				for (LOSMState *sp : asdf) {
 					std::cout << sp << "**" << sp->get_previous()->get_uid() << "_" << sp->get_current()->get_uid();
 					std::cout << "(" << sp->get_tiredness() << ", " << sp->get_autonomy() << "::" << stateTransitions->get(s, a, sp) << ") ";
 				}
@@ -514,13 +514,13 @@ void LOSMMDP::create_rewards(LOSM *losm)
 	float floatMaxCuda = -1e+35;
 
 	for (auto state : *S) {
-		const LOSMState *s = dynamic_cast<const LOSMState *>(resolve(state));
+		LOSMState *s = dynamic_cast<LOSMState *>(resolve(state));
 
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 
 			for (auto statePrime : *S) {
-				const LOSMState *sp = dynamic_cast<const LOSMState *>(resolve(statePrime));
+				LOSMState *sp = dynamic_cast<LOSMState *>(resolve(statePrime));
 
 //				std::cout << s->get_index() << " " << ((IndexedAction *)a)->get_index() << " " << sp->get_index() << std::endl; std::cout.flush();
 
@@ -606,7 +606,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 	StatesMap *S = dynamic_cast<StatesMap *>(states);
 
 	// The initial state is arbitrary.
-	initialState = new Initial(S->get(0));
+//	initialState = new Initial(S->get(0));
 
 	// Infinite horizon with a discount factor of 0.9.
 	horizon = new Horizon(0.99);
@@ -614,7 +614,7 @@ void LOSMMDP::create_misc(LOSM *losm)
 	std::cout << "Done Misc!" << std::endl; std::cout.flush();
 }
 
-void LOSMMDP::map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+void LOSMMDP::map_directed_path(LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
 		float &distance, float &speedLimit,
 		const LOSMNode *&result, const LOSMNode *&resultStep)
 {

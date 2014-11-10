@@ -79,7 +79,7 @@ public:
 	 * Given a policy map, this outputs the pretty picture of the grid world and the policy.
 	 * @param	policy		The policy to print along with the grid world.
 	 */
-	void print(const PolicyMap *policy);
+	void print(PolicyMap *policy);
 
 	/**
 	 * Set the weights for the factored weighted rewards.

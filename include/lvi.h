@@ -74,13 +74,13 @@ public:
 	 * @throw	PolicyException				An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	PolicyMap *solve(const LMDP *lmdp);
+	PolicyMap *solve(LMDP *lmdp);
 
 	/**
 	 * Get the values of the states.
 	 * @return	The values of all the states.
 	 */
-	const std::vector<std::unordered_map<const State *, double> > &get_V() const;
+	std::vector<std::unordered_map<State *, double> > &get_V();
 
 protected:
 	/**
@@ -96,11 +96,11 @@ protected:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	virtual PolicyMap *solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
-			const std::vector<float> &delta,
-			const std::vector<std::vector<const State *> > &P,
-			const std::vector<std::vector<unsigned int> > &o);
+	virtual PolicyMap *solve_infinite_horizon(StatesMap *S, ActionsMap *A,
+			StateTransitions *T, FactoredRewards *R, Horizon *h,
+			std::vector<float> &delta,
+			std::vector<std::vector<State *> > &P,
+			std::vector<std::vector<unsigned int> > &o);
 
 	/**
 	 * Solve the infinite horizon MDP for a particular partition of the state space.
@@ -119,11 +119,11 @@ protected:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	virtual void compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-			const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
-			const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-			const std::vector<std::unordered_map<const State *, double> > &VFixed,
-			std::vector<std::unordered_map<const State *, double> > &V,
+	virtual void compute_partition(StatesMap *S, ActionsMap *A, StateTransitions *T,
+			FactoredRewards *R, Horizon *h, std::vector<float> &delta,
+			std::vector<State *> &Pj, std::vector<unsigned int> &oj,
+			std::vector<std::unordered_map<State *, double> > &VFixed,
+			std::vector<std::unordered_map<State *, double> > &V,
 			PolicyMap *policy, std::vector<double> &maxDifference);
 
 	/**
@@ -137,10 +137,10 @@ protected:
 	 * @param	Vi		The i-th value function.
 	 * @param	AiPlus1	The new set of actions for i + 1. This will be updated.
 	 */
-	void compute_A_argmax(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-			const State *s, const std::unordered_map<const State *, double> &Vi,
-			std::vector<const Action *> &AiPlus1);
+	void compute_A_argmax(StatesMap *S, std::vector<Action *> &Ai,
+			StateTransitions *T, SASRewards *Ri, Horizon *h,
+			State *s, std::unordered_map<State *, double> &Vi,
+			std::vector<Action *> &AiPlus1);
 
 	/**
 	 * Compute A_{i+1}^t given that the value function for i, V_i^*, has already converged.
@@ -154,11 +154,11 @@ protected:
 	 * @param	deltai	The slack value for i in K.
 	 * @param	AiPlus1	The new set of actions for i + 1. This will be updated.
 	 */
-	void compute_A_delta(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-			const State *s, const std::unordered_map<const State *, double> &Vi,
+	void compute_A_delta(StatesMap *S, std::vector<Action *> &Ai,
+			StateTransitions *T, SASRewards *Ri, Horizon *h,
+			State *s, std::unordered_map<State *, double> &Vi,
 			float deltai,
-			std::vector<const Action *> &AiPlus1);
+			std::vector<Action *> &AiPlus1);
 
 	/**
 	 * Compute V_i^{t+1} given that the value function for i, V_i^t.
@@ -172,10 +172,10 @@ protected:
 	 * @param	ViNext	The i-th value function at time t+1. This will be updated.
 	 * @param	a		The action taken to obtain the max value. This will be updated.
 	 */
-	void compute_V(const StatesMap *S, const std::vector<const Action *> &Ai,
-			const StateTransitions *T, const SASRewards *Ri, const Horizon *h,
-			const State *s, const std::unordered_map<const State *, double> &Vi,
-			std::unordered_map<const State *, double> &ViNext, const Action *&a);
+	void compute_V(StatesMap *S, std::vector<Action *> &Ai,
+			StateTransitions *T, SASRewards *Ri, Horizon *h,
+			State *s, std::unordered_map<State *, double> &Vi,
+			std::unordered_map<State *, double> &ViNext, Action *&a);
 
 	/**
 	 * Compute the value of Q_i(s, a) for some state and action.
@@ -189,14 +189,14 @@ protected:
 	 * @throw	PolicyException		There was an undefined value of a state.
 	 * @return	Returns the Q_i(s, a) value.
 	 */
-	double compute_Q(const StatesMap *S, const StateTransitions *T, const SASRewards *Ri,
-			const Horizon *h, const State *s, const Action *a,
-			const std::unordered_map<const State *, double> &Vi);
+	double compute_Q(StatesMap *S, StateTransitions *T, SASRewards *Ri,
+			Horizon *h, State *s, Action *a,
+			std::unordered_map<State *, double> &Vi);
 
 	/**
 	 * The value of the states, one for each reward.
 	 */
-	std::vector<std::unordered_map<const State *, double> > V;
+	std::vector<std::unordered_map<State *, double> > V;
 
 	/**
 	 * The tolerance convergence criterion.

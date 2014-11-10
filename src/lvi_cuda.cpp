@@ -17,7 +17,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include <chrono> // New High-Resolution Time for C++11!
+#include <chrono>
 
 //#define SHOW_DETAILED_TIMING
 
@@ -50,11 +50,11 @@ LVICuda::LVICuda(double tolerance)
 LVICuda::~LVICuda()
 { }
 
-PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-		const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
-		const std::vector<float> &delta,
-		const std::vector<std::vector<const State *> > &P,
-		const std::vector<std::vector<unsigned int> > &o)
+PolicyMap *LVICuda::solve_infinite_horizon(StatesMap *S, ActionsMap *A,
+		StateTransitions *T, FactoredRewards *R, Horizon *h,
+		std::vector<float> &delta,
+		std::vector<std::vector<State *> > &P,
+		std::vector<std::vector<unsigned int> > &o)
 {
 	initialize_variables(S, A, T, R, P);
 
@@ -66,12 +66,12 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 	V.resize(R->get_num_rewards());
 
 	// We will want to remember the previous fixed values of states, too.
-	std::vector<std::unordered_map<const State *, double> > VFixed;
+	std::vector<std::unordered_map<State *, double> > VFixed;
 	VFixed.resize(R->get_num_rewards());
 
 	// Default all values.
 	for (auto state : *S) {
-		const State *s = resolve(state);
+		State *s = resolve(state);
 		for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 			V[i][s] = 0.0;
 			VFixed[i][s] = 0.0;
@@ -126,7 +126,7 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 	while (!converged) {
 		// Update VFixed to the previous value of V.
 		for (auto state : *S) {
-			const State *s = resolve(state);
+			State *s = resolve(state);
 			for (int i = 0; i < (int)R->get_num_rewards(); i++) {
 				VFixed[i][s] = V[i][s];
 			}
@@ -141,7 +141,7 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 				difference[j][i] = 0.0;
 			}
 
-			compute_partition(S, A, T, R, s0, h, delta, j, P[j], o[j], VFixed, V, policy, difference[j]);
+			compute_partition(S, A, T, R, h, delta, j, P[j], o[j], VFixed, V, policy, difference[j]);
 		}
 
 		// Check for convergence.
@@ -212,34 +212,34 @@ PolicyMap *LVICuda::solve_infinite_horizon(const StatesMap *S, const ActionsMap 
 	return policy;
 }
 
-void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-		const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
+void LVICuda::compute_partition(StatesMap *S, ActionsMap *A, StateTransitions *T,
+		FactoredRewards *R, Horizon *h, std::vector<float> &delta,
 		int j,
-		const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-		const std::vector<std::unordered_map<const State *, double> > &VFixed,
-		std::vector<std::unordered_map<const State *, double> > &V,
+		std::vector<State *> &Pj, std::vector<unsigned int> &oj,
+		std::vector<std::unordered_map<State *, double> > &VFixed,
+		std::vector<std::unordered_map<State *, double> > &V,
 		PolicyMap *policy, std::vector<double> &maxDifference)
 {
-	const StateTransitionsArray *Tarray = dynamic_cast<const StateTransitionsArray *>(T);
+	StateTransitionsArray *Tarray = dynamic_cast<StateTransitionsArray *>(T);
 	if (Tarray == nullptr) {
 		throw PolicyException();
 	}
 
 	// Remember the set of actions available to each of the value functions. This will be computed at the end of each step.
-	std::vector<std::unordered_map<const State *, std::vector<const Action *> > > AStar;
+	std::vector<std::unordered_map<State *, std::vector<Action *> > > AStar;
 	AStar.resize(R->get_num_rewards());
 
 	// Setup the initial set of actions for i = 1.
 	for (auto s : Pj) {
 		for (auto action : *A) {
-			const Action *a = resolve(action);
+			Action *a = resolve(action);
 			AStar[oj[0]][s].push_back(a);
 		}
 	}
 
 	// For each of the value functions, we will compute the actions set.
 	for (int i = 0; i < (int)R->get_num_rewards(); i++) {
-		const SASRewardsArray *Ri = dynamic_cast<const SASRewardsArray *>(R->get(oj[i]));
+		SASRewardsArray *Ri = dynamic_cast<SASRewardsArray *>(R->get(oj[i]));
 		if (Ri == nullptr) {
 			throw PolicyException();
 		}
@@ -247,17 +247,17 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 		// In order of cudaPj (above), e.g., 5, 8, 1, 2, ...
 		float *cudaVi = new float[S->get_num_states()];
 		for (int state = 0; state < (int)S->get_num_states(); state++) {
-			const State *s = S->get(state);
+			State *s = S->get(state);
 			cudaVi[state] = VFixed.at(oj[i]).at(s);
 		}
 
 		// Create the array of available actions, represented as a boolean.
 		bool *cudaAStar = new bool[Pj.size() * A->get_num_actions()];
 		for (int state = 0; state < (int)Pj.size(); state++) {
-			const State *s = Pj.at(state);
+			State *s = Pj.at(state);
 
 			for (int action = 0; action < (int)A->get_num_actions(); action++) {
-				const Action *a = A->get(action);
+				Action *a = A->get(action);
 
 				if (std::find(AStar[oj[i]][s].begin(), AStar[oj[i]][s].end(), a) != AStar[oj[i]][s].end()) {
 					cudaAStar[state * A->get_num_actions() + action] = true;
@@ -284,8 +284,8 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 							(float)Ri->get_max(),
 							(float)h->get_discount_factor(),
 							(float)epsilon,
-							(unsigned int)std::ceil((double)Pj.size() / 64.0),
-							(unsigned int)64,
+							(unsigned int)std::ceil((double)Pj.size() / 128.0),
+							(unsigned int)128,
 							cudaVi);
 
 #ifdef SHOW_DETAILED_TIMING
@@ -296,7 +296,7 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 
 		if (result == 0) {
 			for (int state = 0; state < (int)Pj.size(); state++) {
-				const State *s = Pj.at(state);
+				State *s = Pj.at(state);
 
 				// Set the value of the state.
 				V[oj[i]][s] = cudaVi[cudaP[j][state]];
@@ -337,12 +337,12 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 
 			if (result == 0) {
 				for (int state = 0; state < (int)Pj.size(); state++) {
-					const State *s = Pj.at(state);
+					State *s = Pj.at(state);
 
 					// Set the policy.
 					for (int action = 0; action < (int)A->get_num_actions(); action++) {
 						if (action == (int)cudaPI[j][state]) {
-							const Action *a = A->get(action);
+							Action *a = A->get(action);
 							policy->set(s, a);
 							break;
 						}
@@ -382,10 +382,10 @@ void LVICuda::compute_partition(const StatesMap *S, const ActionsMap *A, const S
 //	std::cout << "Completed partition." << std::endl; std::cout.flush();
 }
 
-void LVICuda::initialize_variables(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-		const FactoredRewards *R, const std::vector<std::vector<const State *> > &P)
+void LVICuda::initialize_variables(StatesMap *S, ActionsMap *A, StateTransitions *T,
+		FactoredRewards *R, std::vector<std::vector<State *> > &P)
 {
-	const StateTransitionsArray *Tarray = dynamic_cast<const StateTransitionsArray *>(T);
+	StateTransitionsArray *Tarray = dynamic_cast<StateTransitionsArray *>(T);
 	if (Tarray == nullptr) {
 		throw PolicyException();
 	}
@@ -419,7 +419,7 @@ void LVICuda::initialize_variables(const StatesMap *S, const ActionsMap *A, cons
 	d_R = new float *[k];
 
 	for (int i = 0; i < k; i++) {
-		const SASRewardsArray *Ri = dynamic_cast<const SASRewardsArray *>(R->get(i));
+		SASRewardsArray *Ri = dynamic_cast<SASRewardsArray *>(R->get(i));
 		if (Ri == nullptr) {
 			throw PolicyException();
 		}

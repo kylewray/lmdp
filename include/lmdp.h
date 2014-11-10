@@ -53,7 +53,7 @@ public:
 	 * @param	o		The z-array of orderings over each of the k rewards.
 	 */
 	LMDP(States *S, Actions *A, StateTransitions *T, FactoredRewards *R, Initial *s, Horizon *h,
-			std::vector<float> *d, std::vector<std::vector<const State *> > *P,
+			std::vector<float> *d, std::vector<std::vector<State *> > *P,
 			std::vector<std::vector<unsigned int> > *o);
 
 	/**
@@ -66,7 +66,7 @@ public:
 	 * return of a FactoredRewards object.
 	 * @return	The factored rewards.
 	 */
-	const FactoredRewards *get_rewards() const;
+	FactoredRewards *get_rewards();
 
 	/**
 	 * Set the slack.
@@ -78,19 +78,19 @@ public:
 	 * Get the slack.
 	 * @return	The slack vector.
 	 */
-	const std::vector<float> &get_slack() const;
+	std::vector<float> &get_slack();
 
 	/**
 	 * Set the partitions.
 	 * @param	P	The new partitions.
 	 */
-	void set_partitions(const std::vector<std::vector<const State *> > &P);
+	void set_partitions(const std::vector<std::vector<State *> > &P);
 
 	/**
 	 * Get the partition over states.
 	 * @return	The partition vector.
 	 */
-	const std::vector<std::vector<const State *> > &get_partitions() const;
+	std::vector<std::vector<State *> > &get_partitions();
 
 	/**
 	 * Set the orderings.
@@ -102,7 +102,7 @@ public:
 	 * Get the orderings for each partition.
 	 * @return	The orderings for each partition.
 	 */
-	const std::vector<std::vector<unsigned int> > &get_orderings() const;
+	std::vector<std::vector<unsigned int> > &get_orderings();
 
 protected:
 	/**
@@ -113,7 +113,7 @@ protected:
 	/**
 	 * The z-partition over states. This is a parallel vector to ordering.
 	 */
-	std::vector<std::vector<const State *> > partition;
+	std::vector<std::vector<State *> > partition;
 
 	/**
 	 * The z-array of orderings over each of the k rewards. This is a parallel

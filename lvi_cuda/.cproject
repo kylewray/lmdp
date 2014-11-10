@@ -33,6 +33,7 @@
 								<option id="nvcc.compiler.option.level.1626874332" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.2086590072" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.480938012" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.ftz.1928337983" name="Flush denormal values to zero in single-precision FP operations (-ftz)" superClass="nvcc.compiler.ftz" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.618546467" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1157539025" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1866099641" superClass="nvcc.compiler.input.c"/>
@@ -54,9 +55,10 @@
 			</storageModule>
 			<storageModule moduleId="com.nvidia.cuda.ide.build.project.ICudaProjectConfiguration">
 				<executable devicelink="false">
-					<sass major="2" minor="0"/>
-					<ptx major="2" minor="0"/>
+					<sass major="3" minor="0"/>
+					<ptx major="3" minor="0"/>
 				</executable>
+				<editor-arch major="3" minor="0"/>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
@@ -90,6 +92,7 @@
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/lvi_cuda"/>
 		</configuration>
+		<configuration configurationName="BuildLibrary"/>
 		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/lvi_cuda"/>
 		</configuration>

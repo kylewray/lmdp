@@ -30,14 +30,14 @@ LMDP::LMDP()
 { }
 
 LMDP::LMDP(States *S, Actions *A, StateTransitions *T, FactoredRewards *R, Initial *s, Horizon *h,
-		std::vector<float> *d, std::vector<std::vector<const State *> > *P,
-		std::vector<std::vector<unsigned int> > *o) : MDP(S, A, T, R, s, h)
+		std::vector<float> *d, std::vector<std::vector<State *> > *P,
+		std::vector<std::vector<unsigned int> > *o) : MDP(S, A, T, R, h)
 {
 	for (float val : *d) {
 		delta.push_back(val);
 	}
 
-	for (std::vector<const State *> p : *P) {
+	for (std::vector<State *> p : *P) {
 		partition.push_back(p);
 	}
 
@@ -53,9 +53,9 @@ LMDP::~LMDP()
 	ordering.clear();
 }
 
-const FactoredRewards *LMDP::get_rewards() const
+FactoredRewards *LMDP::get_rewards()
 {
-	const FactoredRewards *R = dynamic_cast<const FactoredRewards *>(rewards);
+	FactoredRewards *R = dynamic_cast<FactoredRewards *>(rewards);
 	if (R == nullptr) {
 		throw RewardException();
 	}
@@ -70,20 +70,20 @@ void LMDP::set_slack(const std::vector<float> &d)
 	}
 }
 
-const std::vector<float> &LMDP::get_slack() const
+std::vector<float> &LMDP::get_slack()
 {
 	return delta;
 }
 
-void LMDP::set_partitions(const std::vector<std::vector<const State *> > &P)
+void LMDP::set_partitions(const std::vector<std::vector<State *> > &P)
 {
 	partition.clear();
-	for (std::vector<const State *> p : P) {
+	for (std::vector<State *> p : P) {
 		partition.push_back(p);
 	}
 }
 
-const std::vector<std::vector<const State *> > &LMDP::get_partitions() const
+std::vector<std::vector<State *> > &LMDP::get_partitions()
 {
 	return partition;
 }
@@ -96,7 +96,7 @@ void LMDP::set_orderings(const std::vector<std::vector<unsigned int> > &o)
 	}
 }
 
-const std::vector<std::vector<unsigned int> > &LMDP::get_orderings() const
+std::vector<std::vector<unsigned int> > &LMDP::get_orderings()
 {
 	return ordering;
 }

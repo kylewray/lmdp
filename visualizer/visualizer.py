@@ -98,10 +98,10 @@ class LMDPVisualizer:
         #self.showPolicyValues = True
         self.showPolicyValues = False
 
-        #self.fastRender = True
-        self.fastRender = False
+        self.fastRender = True
+        #self.fastRender = False
         self.elements = dict()
-        self.elementResolution = 6 #12  # Note: How many sub-divisions, i.e., scale as above.
+        self.elementResolution = 10 #12  # Note: How many sub-divisions, i.e., scale as above.
 
         self.losm = None
         if filePrefix != None:

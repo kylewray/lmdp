@@ -65,11 +65,11 @@ protected:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	virtual PolicyMap *solve_infinite_horizon(const StatesMap *S, const ActionsMap *A,
-			const StateTransitions *T, const FactoredRewards *R, const Initial *s0, const Horizon *h,
-			const std::vector<float> &delta,
-			const std::vector<std::vector<const State *> > &P,
-			const std::vector<std::vector<unsigned int> > &o);
+	virtual PolicyMap *solve_infinite_horizon(StatesMap *S, ActionsMap *A,
+			StateTransitions *T, FactoredRewards *R, Horizon *h,
+			std::vector<float> &delta,
+			std::vector<std::vector<State *> > &P,
+			std::vector<std::vector<unsigned int> > &o);
 	/**
 	 * Solve the infinite horizon MDP for a particular partition of the state space.
 	 * @param	S					The finite states.
@@ -88,12 +88,12 @@ protected:
 	 * @throw	PolicyException		An error occurred computing the policy.
 	 * @return	Return the optimal policy.
 	 */
-	virtual void compute_partition(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-			const FactoredRewards *R, const Initial *s0, const Horizon *h, const std::vector<float> &delta,
+	virtual void compute_partition(StatesMap *S, ActionsMap *A, StateTransitions *T,
+			FactoredRewards *R, Horizon *h,  std::vector<float> &delta,
 			int j,
-			const std::vector<const State *> &Pj, const std::vector<unsigned int> &oj,
-			const std::vector<std::unordered_map<const State *, double> > &VFixed,
-			std::vector<std::unordered_map<const State *, double> > &V,
+			std::vector<State *> &Pj, std::vector<unsigned int> &oj,
+			std::vector<std::unordered_map<State *, double> > &VFixed,
+			std::vector<std::unordered_map<State *, double> > &V,
 			PolicyMap *policy, std::vector<double> &maxDifference);
 
 	/**
@@ -104,8 +104,8 @@ protected:
 	 * @param	R					The factored state-action-state rewards.
 	 * @param	P	The partitions over the state space.
 	 */
-	virtual void initialize_variables(const StatesMap *S, const ActionsMap *A, const StateTransitions *T,
-			const FactoredRewards *R, const std::vector<std::vector<const State *> > &P);
+	virtual void initialize_variables(StatesMap *S, ActionsMap *A, StateTransitions *T,
+			FactoredRewards *R, std::vector<std::vector<State *> > &P);
 
 	/**
 	 * Uninitialize the CUDA variables.

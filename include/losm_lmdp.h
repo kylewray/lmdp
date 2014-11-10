@@ -42,7 +42,7 @@
 
 #define NUM_TIREDNESS_LEVELS 2
 
-#define INTERSECTION_WAIT_TIME_IN_SECONDS 30.0
+#define INTERSECTION_WAIT_TIME_IN_SECONDS 5.0
 #define AUTONOMY_SPEED_LIMIT_THRESHOLD 30.0
 #define AUTONOMY_SPEED_LIMIT_FACTOR 0.9
 
@@ -115,8 +115,8 @@ public:
 	 * @param	V			The values of all the states.
 	 * @return	Returns true if an error arose, and false otherwise.
 	 */
-	bool save_policy(const PolicyMap *policy, std::string filename,
-			const std::vector<std::unordered_map<const State *, double> > &V) const;
+	bool save_policy(PolicyMap *policy, std::string filename,
+			const std::vector<std::unordered_map<State *, double> > &V);
 
 	/**
 	 * Get the initial state, as defined by the constructor's two UIDs.
@@ -125,7 +125,7 @@ public:
 	 * @throw	CoreException	Could not find the initial state, or the UIDs were not long ints.
 	 * @return	The initial state.
 	 */
-	const LOSMState *get_initial_state(std::string initial1, std::string initial2) const;
+	LOSMState *get_initial_state(std::string initial1, std::string initial2);
 
 	/**
 	 * Set the weights for the factored weighted rewards.
@@ -186,7 +186,7 @@ private:
 	 * @param	result			The resultant node of this computation.
 	 * @param	resultStep		The previous node away from the resultant node of this computation.
 	 */
-	void map_directed_path(const LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
+	void map_directed_path(LOSM *losm, const LOSMNode *current, const LOSMNode *previous,
 			float &distance, float &speedLimit,
 			const LOSMNode *&result, const LOSMNode *&resultStep);
 
@@ -217,7 +217,7 @@ private:
 	 * A map of the successor for taking an action, in which we ignore the tiredness value of
 	 * the successor state. Used to save a policy for the visualizer.
 	 */
-	std::unordered_map<const LOSMState *, std::unordered_map<unsigned int, const LOSMState *> > successors;
+	std::unordered_map<LOSMState *, std::unordered_map<unsigned int, LOSMState *> > successors;
 
 	/**
 	 * One of the two goal node's UID.
