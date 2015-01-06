@@ -48,7 +48,7 @@ public:
 	 * @param	R		The k-factored rewards, which uses the states and actions parameters.
 	 * @param	s		The initial state, which uses the states parameter.
 	 * @param	h		The horizon.
-	 * @param	d		The slack as a k-array; each element must be non-negative.
+	 * @param	d		The slack vector of size k. Values must be non-negative.
 	 * @param	P		The z-partition over states.
 	 * @param	o		The z-array of orderings over each of the k rewards.
 	 */

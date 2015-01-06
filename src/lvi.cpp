@@ -26,7 +26,7 @@
 
 #include "../include/lvi.h"
 
-#include "../../nova/nova/include/lvi.h"
+#include "../lvi_cuda/lvi_cuda.h"
 
 #include "../../librbr/librbr/include/management/conversion.h"
 
