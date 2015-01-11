@@ -1,4 +1,5 @@
 #!/bin/bash
 
-optirun python visualizer.py ../resources/san_francisco_ ../policies/san_francisco.policy
+cd ~/Development/losm/losm_visualizer
+optirun python visualizer.py 1600 900 1 ~/Development/lmdp/resources/san_francisco_ ~/Development/lmdp/policies/san_francisco.policy
 
