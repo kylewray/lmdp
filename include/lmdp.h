@@ -22,8 +22,8 @@
  */
 
 
-#ifndef L_MDP_H
-#define L_MDP_H
+#ifndef LMDP_H
+#define LMDP_H
 
 
 #include "../../librbr/librbr/include/mdp/mdp.h"
@@ -124,4 +124,4 @@ protected:
 };
 
 
-#endif // L_MDP_H
+#endif // LMDP_H

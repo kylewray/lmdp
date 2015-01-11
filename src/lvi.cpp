@@ -542,12 +542,8 @@ double LVI::compute_Q(StatesMap *S, StateTransitions *T, SASRewards *Ri,
 	// Compute the Q_i(s, a) estimate.
 	double Qisa = 0.0;
 
-	// Get the list of successor states.
-	std::vector<State *> successors;
-	T->successors(S, s, a, successors);
-
 	// For each of the successors, compute the bellman update equation.
-	for (State *sPrime : successors) {
+	for (State *sPrime : T->successors(S, s, a)) {
 		std::unordered_map<State *, double>::const_iterator VisIterator = Vi.find(sPrime);
 		if (VisIterator == Vi.end()) {
 			throw PolicyException();
