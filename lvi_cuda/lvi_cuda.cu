@@ -132,14 +132,14 @@ int lvi_initialize_state_transitions(unsigned int n, unsigned int m, const float
 
 	// Allocate the memory on the device.
 	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_state_transitions]: %s",
 				"Failed to allocate device-side memory for the state transitions.");
 		return -3;
 	}
 
 	// Copy the data from the host to the device.
 	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_state_transitions]: %s",
 				"Failed to copy memory from host to device for the state transitions.");
 		return -3;
 	}
@@ -156,14 +156,14 @@ int lvi_initialize_rewards(unsigned int n, unsigned int m, const float *R, float
 
 	// Allocate the memory on the device.
 	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_rewards]: %s",
 				"Failed to allocate device-side memory for the rewards.");
 		return -3;
 	}
 
 	// Copy the data from the host to the device.
 	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_rewards]: %s",
 				"Failed to copy memory from host to device for the rewards.");
 		return -3;
 	}
@@ -182,26 +182,26 @@ int lvi_initialize_partition(unsigned int z,
 
 	// Allocate the memory on the device.
 	if (cudaMalloc(&d_Pj, z * sizeof(unsigned int)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_partition]: %s",
 				"Failed to allocate device-side memory for the partition array.");
 		return -3;
 	}
 
 	if (cudaMalloc(&d_pi, z * sizeof(unsigned int)) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_partition]: %s",
 				"Failed to allocate device-side memory for the policy (pi).");
 		return -3;
 	}
 
 	// Copy the data from the host to the device.
 	if (cudaMemcpy(d_Pj, Pj, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_partition]: %s",
 				"Failed to copy memory from host to device for the partition array.");
 		return -3;
 	}
 
 	if (cudaMemcpy(d_pi, pi, z * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_initialize_partition]: %s",
 				"Failed to copy memory from host to device for the policy (pi).");
 		return -3;
 	}
@@ -212,7 +212,7 @@ int lvi_initialize_partition(unsigned int z,
 int lvi_get_policy(unsigned int z, const unsigned int *d_pi, unsigned int *pi)
 {
 	if (cudaMemcpy(pi, d_pi, z * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-		fprintf(stderr, "Error[lvi_cuda]: %s",
+		fprintf(stderr, "Error[lvi_get_policy]: %s",
 				"Failed to copy memory from device to host for the policy (pi).");
 		return -3;
 	}
@@ -255,11 +255,15 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 	if (n == 0 || z == 0 || m == 0 || A == nullptr ||
 			d_Pj == nullptr || d_T == nullptr || d_Ri == nullptr || d_pi == nullptr ||
 			gamma < 0.0f || gamma >= 1.0f) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Invalid arguments.");
 		return -1;
 	}
 
 	// Also ensure that there are enough blocks and threads to run the program.
 	if (numBlocks * numThreads < z) {
+		fprintf(stderr, "Error[lvi_cuda]: %s",
+				"Invalid number of threads and blocks.");
 		return -2;
 	}
 
