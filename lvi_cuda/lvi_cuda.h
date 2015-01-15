@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NSIGHT_LVI_CUDA_H
-#define NSIGHT_LVI_CUDA_H
+#ifndef LVI_CUDA_H
+#define LVI_CUDA_H
 
 
 /**
@@ -133,4 +133,4 @@ int lvi_uninitialize(float *&d_T,
 		unsigned int ell, unsigned int **&d_P, unsigned int **&d_pi);
 
 
-#endif // NSIGHT_LVI_CUDA_H
+#endif // LVI_CUDA_H
