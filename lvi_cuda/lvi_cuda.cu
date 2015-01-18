@@ -268,7 +268,7 @@ int lvi_cuda(unsigned int n, unsigned int z, unsigned int m, const bool *A,
 	}
 
 	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = max(16, (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma))));
+	int iterations = max(16, (int)std::ceil(std::log(2.0 * (Rmax - Rmin) / (epsilon * (1.0 - gamma)) / std::log(1.0f / gamma))));
 
 	// Allocate the device-side memory.
 	if (cudaMalloc(&d_A, z * m * sizeof(bool)) != cudaSuccess) {

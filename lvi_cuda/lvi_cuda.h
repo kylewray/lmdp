@@ -22,8 +22,10 @@
  */
 
 
-#ifndef LVI_CUDA_H
-#define LVI_CUDA_H
+// Note: The "EXT" part ensures this name is different from the define in the header
+// file inside the C++ code.
+#ifndef LVI_CUDA_EXT_H
+#define LVI_CUDA_EXT_H
 
 
 /**
@@ -133,4 +135,4 @@ int lvi_uninitialize(float *&d_T,
 		unsigned int ell, unsigned int **&d_P, unsigned int **&d_pi);
 
 
-#endif // LVI_CUDA_H
+#endif // LVI_CUDA_EXT_H
