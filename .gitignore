@@ -8,3 +8,5 @@ libnova_cuda.dylib
 *.dat
 *.policy
 
+lmdp.raw_mdp
+

@@ -42,6 +42,8 @@
 #include "../../librbr/librbr/include/core/actions/action_utilities.h"
 #include "../../librbr/librbr/include/core/actions/action_exception.h"
 
+#include "../../librbr/librbr/include/management/raw_file.h"
+
 #include <iostream>
 #include <unordered_map>
 
@@ -53,6 +55,13 @@ int main(int argc, char *argv[])
 	bool viWeightCheck = true;
 	bool cudaVersion = true;
 	bool printGrid = false;
+
+	//* Export the raw LMDP file.
+	LOSMMDP losmMDPForRawFile(argv[1], argv[2], argv[3], argv[6], argv[7]);
+	RawFile rawFile;
+	rawFile.save_raw_mdp(&losmMDPForRawFile, "lmdp.raw_mdp");
+	return 0;
+	//*/
 
 	if (losmVersion) {
 		// Ensure the correct number of arguments.
